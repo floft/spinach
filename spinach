@@ -1,51 +1,47 @@
 #!/bin/bash
 
 #just some variables
-UA="Spinach/0.1.4"
-AURINFO="info"
-AURSEARCH="search"
+UA="Spinach/0.1.5"
 AURPC="https://aur.archlinux.org/rpc.php?type=%s&arg=%s"
 AURDO="https://aur.archlinux.org/packages/%s/%s.tar.gz"
-#the list of pacman ignore packages
-IGNORE="$(grep -E ^IgnorePkg /etc/pacman.conf | sed -e "s/.*=\ //g")"
 
-#a bunch of functions so you can `. /usr/bin/spinach` in other scripts
+#a bunch of functions so you can `. spinach` in other scripts
 aur_download() {
-    package="$1"
+	p="$1" #package
 
 	#file exists?
-	if [ -e "$package" ]; then
-		echo "Exists: $package"
+	if [ -e "$p" ]; then
+		echo "Exists: $p"
 		return 1
 	else
 		#download if it exists
-    	if [ "$(curl "$(printf $AURPC $AURINFO $package)" 2>/dev/null \
-			| grep 'No result found')" == "" ]; then
-			curl -A "$UA" "$(printf $AURDO $package $package)" \
-				-O "$package.tar.gz" 2>/dev/null || return 1
-	        tar xzf "$package.tar.gz" || return 1
-	        rm "$package.tar.gz" || return 1
-			echo "Saved: $package/"
-	    else
-	        echo "Not Found: $package"
+    		if [ "$(curl "$(printf $AURPC info $p)" 2>/dev/null \
+		| grep 'No result found')" == "" ]; then
+			curl -A "$UA" "$(printf $AURDO $p $p)" \
+				-O "$p.tar.gz" 2>/dev/null || return 1
+		        tar xzf "$p.tar.gz" || return 1
+		        rm "$p.tar.gz" || return 1
+			echo "Saved: $p/"
+		else
+	        	echo "Not Found: $p"
 			return 1
-	    fi
+		fi
 	fi
 }
 
 aur_download_deps() {
-	package="$1"
+	p="$1" #package
 
 	#download main package
-	aur_download "$package" || return 1
+	aur_download "$p" || return 1
 	#get the depends from the PKBGUILD
-	if [ -e "$package/PKGBUILD" ]; then
-		depends="$(grep -E "^depends" "$package/PKGBUILD" 2>/dev/null | sed -re "
+	if [ -e "$p/PKGBUILD" ]; then
+		depends="$(grep -E "^depends" "$p/PKGBUILD" 2>/dev/null | sed -re "
 		s/.*\((.*)\).*/\1/g
 		s/'([^><=']*)[><=]+[^']*'/\1/g
 		s/'//g")"
 	else
-		echo "Does not exist: $package/PKGBUILD"
+		echo "Does not exist: $p/PKGBUILD"
 		return 1
 	fi
 	
@@ -64,34 +60,36 @@ aur_download_deps() {
 
 aur_update() {
 	quiet="$1"
-    packages="$(pacman -Qmq)"
-
+	p="$(pacman -Qmq)" #packages
+	
 	#get rid of ignored packages
-	for i in $IGNORE; do
-		packages="$(echo "$packages" | grep -v "$i")"
+	ignore="$(grep -E ^IgnorePkg /etc/pacman.conf | sed -e "s/.*=\ //g")"
+	for i in $ignore; do
+		packages="$(echo "$p" | grep -v "$i")"
 	done
     
-	#update
-    for i in $packages; do
-        updateversion=$(curl -A "$UA" "$(printf $AURPC $AURINFO $i)" \
-			2>/dev/null | sed -re 's/.*Version\":\"([^\"]*)\".*/\1/g')
-		currentversion=$(pacman -Qi "$i" | grep -m 1 Version \
+	#find updates
+	for i in $p; do
+		#up-to-date version
+		up=$(curl -A "$UA" "$(printf $AURPC info "$i")" 2>/dev/null \
+			| sed -re 's/.*Version\":\"([^\"]*)\".*/\1/g')
+		#installed version
+		in=$(pacman -Qi "$i" | grep -m 1 Version \
 			| sed -re 's/.*:\ //g')
-
-		if [ "$(echo "$updateversion" | grep "No result found")" == "" ] \
-		&& [ "$updateversion" != "$currentversion" ]; then
+	
+		if [ "$(echo "$up" | grep "No result found")" == "" ] \
+		&& [ "$up" != "$in" ]; then
 			if [ "$quiet" == "" ]; then
-				echo "$i ($currentversion => $updateversion)"
+				echo "$i ($in => $up)"
 			else
 				echo "$i"
 			fi
 		fi
-    done
+	done
 }
 
 aur_info() {
-	package="$1"
-	curl -A "$UA" "$(printf $AURPC $AURINFO $package)" 2>/dev/null | sed -re '
+	curl -A "$UA" "$(printf $AURPC info "$1")" 2>/dev/null | sed -re '
 	s/.*No result found.*/Package not found/g
 	s/\\"/\&QUOT;/g
 	s/.*results":\{(.*)\}\}/\1/g
@@ -106,8 +104,7 @@ aur_info() {
 }
 
 aur_search() {
-	query="$1"
-	curl -A "$UA" "$(printf $AURPC $AURSEARCH $query)" 2>/dev/null | sed -re '
+	curl -A "$UA" "$(printf $AURPC search "$1")" 2>/dev/null | sed -re '
 	s/.*No results found.*/Package not found\n/g
 	s/\\"/\&QUOT;/g
 	s/.*\[([^"]*)\]}}/\1/g
@@ -120,14 +117,14 @@ aur_search() {
 }
 
 aur_download_updates() {
-	updates=$(aur_update quiet)
+	updates="$(aur_update q)"
 	for i in $updates; do
 		aur_download "$i"
 	done
 }
 
 aur_spinach_help() {
-	echo -e "Usage: $0 [options] [package]
+	echo -e "Usage: spinach [options] [package]
 	-d	Download specified package
 	-dd	Download specified package and AUR dependencies
 	-i	Print info for specified package
