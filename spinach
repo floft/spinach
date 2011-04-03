@@ -1,7 +1,7 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.3.9"
-ssl='';col='';nc=''
+VE="0.3.92"
+ssl=;col=;col1=;col2=;nc=;rep=
 AURURL="http%s://aur.archlinux.org"
 AURPC="$AURURL/rpc.php?type=%s&arg=%s"
 
@@ -83,7 +83,7 @@ aur_update() {
 	for i in $download; do
 		ask_yes_no "Update ${i}?"
 		if [ "$response" == "y" ]; then
-			if aur_download "$i"; then
+			if aur_download "$i" installed; then
 				downloaded="$downloaded $i"
 				if [ -e "$i/PKGBUILD" ]; then
 					cd "$i" && aur_run_install
@@ -113,8 +113,12 @@ aur_download() {
     		if [ -n "$url" ]; then
 			curl -sfA "$UA" "$(printf "$AURURL$url" "$ssl")" -o "$1.tar.gz"
 			tar xzf "$1.tar.gz" &>/dev/null
+			#saved or not saved
 			[ "$?" -gt "0" ] && saved="Not " || saved=""
-			aur_message "${saved}Saved" "$1/"
+			#print whether it is installed
+			[ -z "$2" ] && pacman -T $1 &>/dev/null && \
+				inst=" ${col2}(installed)${nc}" || inst=""
+			printf "${col}%s${nc}: %s$inst\n" "${saved}Saved" "$1/"
 			rm "$1.tar.gz" &>/dev/null || return 1
 		else
 			aur_message "Not Found" "$1"
@@ -123,7 +127,7 @@ aur_download() {
 	fi
 }
 aur_download_deps() { # $1=package; $2=whether to install; $3=install with --asdeps
-	aur_download "$1" && downloaded="$downloaded $1" || return 1
+	aur_download "$1" "$2" && downloaded="$downloaded $1" || return 1
 	#get PKGBUILD depends
 	if [ -e "$1/PKGBUILD" ]; then
 		depends="$(cat "$1/PKGBUILD" | tr '\n' ' ' | \
@@ -135,8 +139,8 @@ aur_download_deps() { # $1=package; $2=whether to install; $3=install with --asd
 		aur_message "Missing" "$(pwd)/$1/PKGBUILD"
 		return 1
 	fi
-	#non-installed depends
-	depends=$(pacman -T $depends)
+	#non-installed depends (only skip when installing)
+	[ -n "$2" ] && depends=$(pacman -T $depends)
 	#download if in the AUR
 	for i in $depends; do
 		pacman -Si $(pacman -Ssq "$i" || echo -h) | \
@@ -192,7 +196,8 @@ aur_find_updates() {
 		if [ -z "$(echo "$up" | grep "No result found")" ] \
 		&& [ -n "$up" ] && [ -n "$in" ] && [ "$up" != "$in" ]; then
 			[ -n "$1" ] && download="$download $name"
-			printf "${col}%s${nc} (%s => %s)\n" "$name" "$in" "$up"
+			printf "${col}%s${nc} (${col3}%s${nc} => ${col2}%s${nc})\n" \
+				"$name" "$in" "$up"
 		fi
 	done
 }
@@ -212,7 +217,7 @@ aur_run_install() {
 	#install
 	ask_yes_no "Install?"
 	if [ "$response" == "y" ]; then
-		makepkg -src
+		makepkg -sc
 		#install
 		[ -n "$1" ] && asdep="--asdeps" || asdep=""
 		#ask if the user wants try again on fail
@@ -220,6 +225,8 @@ aur_run_install() {
 			if ! pacman_run $asdep '-U *.pkg.tar.xz'; then
 				ask_yes_no "Try again?"
 				[ "$response" == "n" ] && break
+			else
+				break
 			fi
 		done
 		#copy to cache
@@ -316,9 +323,10 @@ aur_spinach_help() {
 
 while [ -n "$1" ]; do
 	case "$1" in
+		aur_open
 		#options
 		"-ssl") ssl="s";;
-		"-col") col='\e[0;31m'; nc='\e[0m';;
+		"-col") col='\e[0;31m'; col2='\e[0;32m'; col3='\e[0;34m'; nc='\e[0m';;
 		"-rep") rep="y";;
 		#common
 		"-s") shift; blank_arg "$1"; aur_search "$1";;
@@ -331,7 +339,7 @@ while [ -n "$1" ]; do
 		"-o") aur_find_updates;;
 		"-do") aur_download_updates;;
 		#other
-		"--version") echo "$UA/$VE";; 
+		"--version") echo "$UA/$VE"; exit 0;; 
 		"-h"|"--help") aur_spinach_help; exit 0;;
 	esac
 	shift
