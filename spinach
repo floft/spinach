@@ -1,5 +1,4 @@
 #!/bin/bash
-ssl=""
 UA="Spinach/0.2.0"
 AURPC="http%s://aur.archlinux.org/rpc.php?type=%s&arg=%s"
 AURDO="http%s://aur.archlinux.org/packages/%s/%s.tar.gz"
