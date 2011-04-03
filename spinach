@@ -178,7 +178,7 @@ aur_auto_install() {
 		fi
 	done
 	
-	rm -r "$tmp"
+	rm -r "$tmp" &>/dev/null
 }
 aur_spinach_help() {
 	echo -e "${col}Usage${nc}: spinach [options] [operations] [package]
