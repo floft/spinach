@@ -1,0 +1,112 @@
+POSSIBLY:
+	* clean up the script; it is getting too big
+	* use /dev/tcp/aur.archlinux.org/80
+
+0.3.93:
+	* removed aur_open... since it wasn't defined; this resulted
+	  in an unusable bash script
+0.3.92:
+	* removed -r option on makepkg since it would uninstall all
+	  the depends and then install them seconds later
+	* when --version specified, exit after printing it
+0.3.91:
+	* fixed infinite install after first time trying again
+	* when downloading print "(installed)" if installed
+	* added more color to listing updates
+0.3.9:
+	* fixed security problem with commands possibly being
+	  executed as root when installing with su (a package
+	  file named ';echo cow;.pkg.tar.xz')
+	* when error running su/sudo, run again (after asking
+	  the user)
+	* fixed problem where /spinach couldn't be created since
+	  it didn't default to /tmp
+0.3.8:
+	* changed EDITOR defaults; moved emacs before vi
+	* install depends as depends when running the installer
+	* fixed when aur_message wouldn't print entire message
+	* added SPINTMPDIR support; otherwise any `mktemp` or any
+	  other commands would create temporary files in the TMPDIR
+	  directory (now checks $SPINTMPDIR, $TMPDIR, and defaults
+	  to /tmp)
+0.3.7:
+	* user agent is now just "Spinach" (decreases the number
+	  of user agents used)
+	* first check if the dep is satisfied (pacman -T) when
+	  doing dep checks
+	* fixed bugs with aur_download_deps where it wouldn't find
+	  some depends
+	* when using aur_message, must specify type (e.g. Error)
+	* changed "Does not exist" to "Missing;" more concise
+	* rearranged and renamed functions to more-closely
+	  follow the help file
+0.3.6:
+	* when installing with repo support (-rep) check if
+	  installing a pacman group
+	* made "not found" messages print location (if applies)
+0.3.5:
+	* fixed installing applications without sudo installed
+	* when installing depends, install the parent package
+	* fixed creating spinach/{build,cache} when deleted
+0.3.4:
+	* when updating ask "View ...?" before downloading,
+	  thus saving bandwidth
+	* changed "View ...?" to "Update ...?" since it makes
+	  more sense
+	* moved tmp from $TMPDIR/aur_spinach to $TMPDIR/spinach
+	* moved cache to spinach/cache and build directory
+	  to spinach/build
+	* added aur_message() to get rid of a lot of printf and
+	  echo statements
+0.3.3:
+	* move created packages during install (-i) into
+	  aur_spinach/spinach_cache (so, for example, when
+	  sudo times out, you don't have to rebuild)
+0.3.2:
+	* removed aur_spinach_update tmp; everything is done in
+	  aur_spinach
+	* added update.lock so you can't update twice at the
+	  same time
+	* added repo (-rep) support for printing info (-p)
+	* when downloading updates, print version changes
+	* use printf instead of multiple echo's in places
+0.3.1:
+	* added repo support to installer with -rep option (if
+	  it is in repo, install with pacman; otherwise use AUR)
+	* use aur_spinach tmp for install; use aur_spinach_update
+	  for update, so you can install multiple programs
+	  at the same time
+0.3.0:
+	* reorganized help message
+	* added EDITOR defaults
+	* combined yes/no code since it's used more than once
+	* yes/no code forces the user to answer either y or n
+	* fixed ^C (trap) bugs
+	* removed extra space when printing info for non-existant
+	  package without color support
+	* made -i and -u use aur_spinach tmp directory instead of
+	  random one for each run (helps if using ccache)
+	* remove aur_spinach only if blank, otherwise error
+0.2.9:
+	* changed options/operations names around to allow install
+	  to be -i and auto upgrade to be -u
+0.2.8:
+	* added -di for installing packages
+	* combined some -di and -a code into aur_run_install()
+0.2.7:
+	* added -a for automatic upgrade (download in tmp, edit files,
+	  run makepkg, remove tmp files)
+0.2.6:
+	* changed curl option -O to -o to output to the right file
+0.2.5:
+	* added repo support (-rep) for searching and decided that
+	  it's not worth having a pacman wrapper for operations
+	  like download and update (too much code and not the
+	  intention of this script)
+0.2.4:
+	* majorly increased speed of aur_update()
+0.2.3:
+	* improved speed of aur_download()
+...
+0.1.0:
+	* initial release
