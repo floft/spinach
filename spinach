@@ -110,12 +110,13 @@ aur_search() {
 	curl -A "$UA" "$(printf $AURPC $AURSEARCH $query)" 2>/dev/null | sed -re '
 	s/.*No results found.*/Package not found\n/g
 	s/\\"/\&QUOT;/g
-	s/.*\[([^"]*)\]}/\1/g
+	s/.*\[([^"]*)\]}}/\1/g
 	s/\{[^}]*"Name":"([^"]*)",[^}]*,"Description":"([^"]*)"[^}]*\}/\1: \2\n/g
 	s/^,//mg
 	s/\\\//\//mg
 	s/\\\\/\\/mg
-	s/\&QUOT;/"/mg'
+	s/\&QUOT;/"/mg
+	s/^]}//mg'
 }
 
 aur_download_updates() {
