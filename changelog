@@ -2,6 +2,8 @@ POSSIBLY:
 	* clean up the script; it is getting too big
 	* use /dev/tcp/aur.archlinux.org/80
 
+0.3.94:
+	* moved help to man page
 0.3.93:
 	* removed aur_open... since it wasn't defined; this resulted
 	  in an unusable bash script
