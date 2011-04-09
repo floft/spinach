@@ -37,5 +37,22 @@ Download all the AUR packages that have a different version than the one in the 
 Specify the text editor to use in order to view the PKGBUILD and .install files when installing and upgrading packages. Defaults in this order if not specified: vim emacs vi nano most less more cat
 .IP "$SPINTMPDIR"
 If specified the spinach build and cache directories will be stored in spinach/ in this folder. If not specified, it will default to $TMPDIR if specified and as a last resort /tmp.
+.SH EXAMPLES
+spinach -s package
+.PP
+spinach -p package
+.PP
+spinach -i package
+.PP
+spinach -u
+.TP
+spinach -ssl -p package1 -d package2 -d package3 -dd package4 -do
+Specify multiple commands.
+.TP
+source /usr/bin/spinach -col
+Source the spinach script to use in other scripts.
+.TP
+spinach $(/usr/bin/spinach -s openlp | sed -re 's/^([^:]*).*/-dd \1/g' | tr '\n' ' ')
+Download all AUR packages returned from a search.
 .SH AUTHOR
-Garrett (floft.net/contact)
+Garrett (http://floft.net/contact)
