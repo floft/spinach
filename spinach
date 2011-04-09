@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.3.93"
+VE="0.3.94"
 ssl=;col=;col1=;col2=;nc=;rep=
 AURURL="http%s://aur.archlinux.org"
 AURPC="$AURURL/rpc.php?type=%s&arg=%s"
