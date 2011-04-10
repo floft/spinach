@@ -9,14 +9,14 @@ spinach \- A small AUR helper written in Bash.
 is a very tiny AUR helper written in Bash that will help you download, install, and update packages from the AUR. If you want to learn more about it, please go to the website (on the Floft Wiki): http://floft.net/wiki/Scripts/Spinach
 .SH OPTIONS
 .IP "-ssl"
-Use SSL when downloading packages and information from the AUR. This has no effect on the pacman operations enabled with the '-rep' option. If this option is specified, spinach will not use multiple threads when finding updates (-u, -o, -do) since testing revealed this would not help the speed at all.
+Use SSL when downloading packages and information from the AUR. If this option is specified, spinach will not use multiple threads when finding updates (-u, -o, -do) since testing revealed this would not help the speed at all. This option has no effect on the pacman operations enabled with the '-rep' option.
 .IP "-col"
 Use color in certian places.
 .IP "-rep"
 Also use pacman for \fIsearch\fR, \fIprint\fR, and \fIinstall\fR operations. Searching will return results from both the AUR and official repositories. Printing information will return information from pacman if available and the AUR if not. Installing will install via the official repositories if found and attempt to install from the AUR otherwise.
 .SH COMMON OPERATIONS
 .IP "-s"
-Search for the specified package (does not support regex; although, for a regex hack see the website mentioned in the description).
+Search for the specified package (does not support regex; although, for a regex hack see the EXAMPLES section).
 .IP "-p"
 Print information for the specified package.
 .IP "-i"
@@ -52,7 +52,7 @@ Specify multiple commands.
 source /usr/bin/spinach -col
 Source the spinach script to use in other scripts.
 .TP
-spinach $(/usr/bin/spinach -s openlp | sed -re 's/^([^:]*).*/-dd \1/g' | tr '\n' ' ')
+spinach $(/usr/bin/spinach -s openlp | sed -re 's/^([^:]*).*/-dd \\1/g' | tr '\\n' ' ')
 Download all AUR packages returned from a search.
 .SH AUTHOR
 Garrett (http://floft.net/contact)
