@@ -1,3 +1,9 @@
+0.3.96:
+	* sort the multithreaded curl results; otherwise they
+	  will be in a random order if -ssl isn't specified
+	* added -sq operation for a quiet search (returns nothing
+	  if no results, and doesn't print descriptions) which
+	  allows regex searches
 0.3.95:
 	* checks for updates with multiple processes when not using
 	  the SSL option since, in my testing, multiple curl processes

@@ -1,4 +1,4 @@
-.TH spinach 1 "2011-04-09" "Spinach 0.3" "Spinach"
+.TH spinach 1 "2011-04-10" "Spinach 0.3" "Spinach"
 .SH NAME
 spinach \- A small AUR helper written in Bash.
 .SH SYNOPSIS
@@ -16,7 +16,7 @@ Use color in certian places.
 Also use pacman for \fIsearch\fR, \fIprint\fR, and \fIinstall\fR operations. Searching will return results from both the AUR and official repositories. Printing information will return information from pacman if available and the AUR if not. Installing will install via the official repositories if found and attempt to install from the AUR otherwise.
 .SH COMMON OPERATIONS
 .IP "-s"
-Search for the specified package (does not support regex; although, for a regex hack see the EXAMPLES section).
+Search for the specified package. A very similar option is '-sq' which prints only the package name from the search. This allows you to pipe the results to grep to do regex searching. See the EXAMPLES section.
 .IP "-p"
 Print information for the specified package.
 .IP "-i"
@@ -52,7 +52,10 @@ Specify multiple commands.
 source /usr/bin/spinach -col
 Source the spinach script to use in other scripts.
 .TP
-spinach $(/usr/bin/spinach -s openlp | sed -re 's/^([^:]*).*/-dd \\1/g' | tr '\\n' ' ')
+spinach $(/usr/bin/spinach -sq openlp | sed 's/^/ -dd /g')
 Download all AUR packages returned from a search.
+.TP
+spinach -sq kernel | grep -E "26-(lts|pf)"
+Regular expression searching
 .SH AUTHOR
 Garrett (http://floft.net/contact)

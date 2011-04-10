@@ -1,26 +1,32 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.3.95"
+VE="0.3.96"
 ssl=;col=;col1=;col2=;nc=;rep=
 AURURL="http%s://aur.archlinux.org"
 AURPC="$AURURL/rpc.php?type=%s&arg=%s"
 
 #functions so you can `. spinach -col`
 aur_search() {
-	if [ -n "$rep" ]; then
-		pacman -Ss "$1" | sed -r 's/^([^/\s]+\/[^ ]+) [^\n]+$/\1/g' | \
-			sed -rn '1h;1!H;${;g;s/\n\s+/: /g;p;}' | aur_display_color
+	if [ -z "$2" ]; then
+		if [ -n "$rep" ]; then
+			pacman -Ss "$1" | sed -r 's/^([^/\s]+\/[^ ]+) [^\n]+$/\1/g' | \
+				sed -rn '1h;1!H;${;g;s/\n\s+/: /g;p;}' | aur_display_color
+		fi
+		curl -sA "$UA" "$(printf $AURPC "$ssl" search "$1")" | sed -r '
+		s/.*(No results found).*/\1\n/g
+		s/\\"/\&QUOT;/g
+		s/.*\[([^"]*)\]}}/\1/g
+		s/\{[^}]*"Name":"([^"]*)",[^}]*,"Description":"([^"]*)"[^}]*\}/\1: \2\n/g
+		s/^,//mg
+		s/\\\//\//mg
+		s/\\\\/\\/mg
+		s/\&QUOT;/"/mg
+		s/^]}//mg' | aur_display_color
+	else
+		[ -n "$rep" ] && pacman -Ssq "$1"
+		curl -sA "$UA" "$(printf $AURPC "$ssl" search "$1")" | \
+			grep -Eo '"Name":"[^"]*"' | sed -r 's/"Name":"([^"]*)"/\1/g'
 	fi
-	curl -sA "$UA" "$(printf $AURPC "$ssl" search "$1")" | sed -r '
-	s/.*(No results found).*/\1\n/g
-	s/\\"/\&QUOT;/g
-	s/.*\[([^"]*)\]}}/\1/g
-	s/\{[^}]*"Name":"([^"]*)",[^}]*,"Description":"([^"]*)"[^}]*\}/\1: \2\n/g
-	s/^,//mg
-	s/\\\//\//mg
-	s/\\\\/\\/mg
-	s/\&QUOT;/"/mg
-	s/^]}//mg' | aur_display_color
 }
 aur_info() {
 	if [ -n "$rep" ]; then
@@ -200,10 +206,11 @@ aur_find_updates() {
 			sleep 0.1
 			jobs &>/dev/null
 		done
-		trap - 2 15
 		inaur="$(cat "$aur_versions" | sed -re '
 			s/\{[^}]*"results":"No result found"\}//g
-			s/\{+[^}]*Name":"([^"]*)"[^}]*Version":"([^"]*)[^}]*\}+/\1\t\2\n/g')"
+			s/\{+[^}]*Name":"([^"]*)"[^}]*Version":"([^"]*)[^}]*\}+/\1\t\2\n/g' | \
+			sort)"
+		trap - 2 15
 		rm "$aur_versions"
 	fi
 	#get installed versions
@@ -331,6 +338,7 @@ while [ -n "$1" ]; do
 		"-rep") rep="y";;
 		#common
 		"-s") shift; blank_arg "$1"; aur_search "$1";;
+		"-sq") shift; blank_arg "$1"; aur_search "$1" quiet;;
 		"-i") shift; blank_arg "$1"; aur_install "$1";;
 		"-p") shift; blank_arg "$1"; aur_info "$1";;
 		"-u") aur_update;;
