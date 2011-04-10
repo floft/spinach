@@ -1,4 +1,4 @@
-.TH spinach 1 "2011-04-08" "Spinach 0.3" "Spinach"
+.TH spinach 1 "2011-04-09" "Spinach 0.3" "Spinach"
 .SH NAME
 spinach \- A small AUR helper written in Bash.
 .SH SYNOPSIS
@@ -9,7 +9,7 @@ spinach \- A small AUR helper written in Bash.
 is a very tiny AUR helper written in Bash that will help you download, install, and update packages from the AUR. If you want to learn more about it, please go to the website (on the Floft Wiki): http://floft.net/wiki/Scripts/Spinach
 .SH OPTIONS
 .IP "-ssl"
-Use SSL when downloading packages and information from the AUR. This has no effect on the pacman operations enabled with the '-rep' option.
+Use SSL when downloading packages and information from the AUR. This has no effect on the pacman operations enabled with the '-rep' option. If this option is specified, spinach will not use multiple threads when finding updates (-u, -o, -do) since testing revealed this would not help the speed at all.
 .IP "-col"
 Use color in certian places.
 .IP "-rep"

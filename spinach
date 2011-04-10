@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.3.94"
+VE="0.3.95"
 ssl=;col=;col1=;col2=;nc=;rep=
 AURURL="http%s://aur.archlinux.org"
 AURPC="$AURURL/rpc.php?type=%s&arg=%s"
@@ -69,15 +69,15 @@ aur_update() {
 	downloaded=""
 	blank_editor || return 1
 	aur_create_tmp || return 1
+	cd "$tmp/build"
+	#get list (outputs to $download)
+	aur_find_updates u
 	#lock
 	[ -e "$tmp/update.lock" ] && aur_message "Error" "update lock exists" && return 1
 	touch "$tmp/update.lock"
 	#clean on kill
 	trap "for i in \$downloaded; do rm -rf \"$tmp/build/\$i/\" &>/dev/null;done;
 		rm \"$tmp/update.lock\";echo;exit 1" 2 15
-	cd "$tmp/build"
-	#get list (outputs to $download)
-	aur_find_updates u
 	#download and install after confirming
 	IFS=$' '
 	for i in $download; do
@@ -165,6 +165,7 @@ aur_download_deps() { # $1=package; $2=whether to install; $3=install with --asd
 	fi
 }
 aur_find_updates() {
+	aur_create_tmp || return 1
 	download=""
 	p="$(pacman -Qmq 2>/dev/null)" #packages
 	#remove ignored
@@ -172,15 +173,39 @@ aur_find_updates() {
 	for i in $ignore; do
 		p="$(echo "$p" | grep -v "$i")"
 	done
-	#list of aur packages
-	list=""
-	for i in $p; do
-		list="$list $(printf "$AURPC" "$ssl" info "$i")"
-	done
-	#get versions from aur 
-	inaur="$(curl -sA "$UA" $list | sed -re '
-		s/\{[^}]*"results":"No result found"\}//g
-		s/\{+[^}]*Name":"([^"]*)"[^}]*Version":"([^"]*)[^}]*\}+/\1\t\2\n/g')"
+	#use multiple threads if not SSL
+	if [ -n "$ssl" ]; then
+		#list of aur packages
+		list=""
+		for i in $p; do
+			list="$list $(printf "$AURPC" "$ssl" info "$i")"
+		done
+		#get versions from aur
+		inaur="$(curl -sA "$UA" $list | sed -re '
+			s/\{[^}]*"results":"No result found"\}//g
+			s/\{+[^}]*Name":"([^"]*)"[^}]*Version":"([^"]*)[^}]*\}+/\1\t\2\n/g')"
+	else
+		#get versions from aur
+		aur_versions="$tmp/findupdates_$$"
+		curl_kill_list=""
+		touch "$aur_versions"
+		trap "kill \$curl_kill_list &>/dev/null; rm \"$aur_versions\"; exit 1" 2 15
+		for i in $p; do
+			curl -sA "$UA" -m 5 --retry-delay 1 --retry 3 \
+				"$(printf "$AURPC" "$ssl" info "$i")" >> "$aur_versions" &
+			curl_kill_list="$! $curl_kill_list"
+			sleep 0.01
+		done
+		while [[ $(jobs|wc -l) > 0 ]]; do
+			sleep 0.1
+			jobs &>/dev/null
+		done
+		trap - 2 15
+		inaur="$(cat "$aur_versions" | sed -re '
+			s/\{[^}]*"results":"No result found"\}//g
+			s/\{+[^}]*Name":"([^"]*)"[^}]*Version":"([^"]*)[^}]*\}+/\1\t\2\n/g')"
+		rm "$aur_versions"
+	fi
 	#get installed versions
 	inlocal="$(pacman -Qi $p | grep -E '^(Name|Version)' | tr '\n' ' ' | \
 		sed -r 's/(Name|Version)\s+: /\n/g' | tail -n +2 | sed 's/ $//g')"
