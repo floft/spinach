@@ -1,5 +1,6 @@
 0.3.97:
 	* added MAXTHREADS to set max number (+1) of curl instances
+	* made SSL be multithreaded also (above fixed speed issue)
 0.3.96:
 	* sort the multithreaded curl results; otherwise they
 	  will be in a random order if -ssl isn't specified
