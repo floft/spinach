@@ -1,9 +1,10 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.3.96"
+VE="0.3.97"
 ssl=;col=;col1=;col2=;nc=;rep=
 AURURL="http%s://aur.archlinux.org"
 AURPC="$AURURL/rpc.php?type=%s&arg=%s"
+[ -z "$MAXTHREADS" ] && MAXTHREADS=10
 
 #functions so you can `. spinach -col`
 aur_search() {
@@ -179,40 +180,32 @@ aur_find_updates() {
 	for i in $ignore; do
 		p="$(echo "$p" | grep -v "$i")"
 	done
-	#use multiple threads if not SSL
-	if [ -n "$ssl" ]; then
-		#list of aur packages
-		list=""
-		for i in $p; do
-			list="$list $(printf "$AURPC" "$ssl" info "$i")"
-		done
-		#get versions from aur
-		inaur="$(curl -sA "$UA" $list | sed -re '
-			s/\{[^}]*"results":"No result found"\}//g
-			s/\{+[^}]*Name":"([^"]*)"[^}]*Version":"([^"]*)[^}]*\}+/\1\t\2\n/g')"
-	else
-		#get versions from aur
-		aur_versions="$tmp/findupdates_$$"
-		curl_kill_list=""
-		touch "$aur_versions"
-		trap "kill \$curl_kill_list &>/dev/null; rm \"$aur_versions\"; exit 1" 2 15
-		for i in $p; do
-			curl -sA "$UA" -m 5 --retry-delay 1 --retry 3 \
-				"$(printf "$AURPC" "$ssl" info "$i")" >> "$aur_versions" &
-			curl_kill_list="$! $curl_kill_list"
-			sleep 0.01
-		done
-		while [[ $(jobs|wc -l) > 0 ]]; do
-			sleep 0.1
-			jobs &>/dev/null
-		done
-		inaur="$(cat "$aur_versions" | sed -re '
-			s/\{[^}]*"results":"No result found"\}//g
-			s/\{+[^}]*Name":"([^"]*)"[^}]*Version":"([^"]*)[^}]*\}+/\1\t\2\n/g' | \
-			sort)"
-		trap - 2 15
-		rm "$aur_versions"
-	fi
+	#get versions from aur with multiple threads
+	aur_versions="$tmp/findupdates_$$"
+	curl_kill_list=""
+	touch "$aur_versions"
+	trap "kill \$curl_kill_list &>/dev/null; rm \"$aur_versions\"; exit 1" 2 15
+	threads=()
+	number=0
+	for i in $p; do #split urls for diff threads
+		threads[$number]="$(printf "$AURPC" "$ssl" info "$i") ${threads[$number]}"
+		[ "$number" == "$MAXTHREADS" ] && number=0 || number=$(($number+1))
+	done
+	for i in $(seq 0 $((${#threads[@]}-1))); do #create threads
+		urls="${threads[$i]}"
+		curl -sA "$UA" -m 5 --retry-delay 1 --retry 4 $urls >> "$aur_versions" &
+		curl_kill_list="$! $curl_kill_list"
+	done
+	while [[ $(jobs|wc -l) > 0 ]]; do #wait for threads
+		sleep 0.1
+		jobs &>/dev/null
+	done
+	inaur="$(cat "$aur_versions" | sed -re '
+		s/\{[^}]*"results":"No result found"\}//g
+		s/\{+[^}]*Name":"([^"]*)"[^}]*Version":"([^"]*)[^}]*\}+/\1\t\2\n/g' | \
+		sort)"
+	trap - 2 15
+	rm "$aur_versions"
 	#get installed versions
 	inlocal="$(pacman -Qi $p | grep -E '^(Name|Version)' | tr '\n' ' ' | \
 		sed -r 's/(Name|Version)\s+: /\n/g' | tail -n +2 | sed 's/ $//g')"

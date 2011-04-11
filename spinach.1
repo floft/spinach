@@ -1,4 +1,4 @@
-.TH spinach 1 "2011-04-10" "Spinach 0.3" "Spinach"
+.TH spinach 1 "2011-04-11" "Spinach 0.3" "Spinach"
 .SH NAME
 spinach \- A small AUR helper written in Bash.
 .SH SYNOPSIS
@@ -37,6 +37,8 @@ Download all the AUR packages that have a different version than the one in the 
 Specify the text editor to use in order to view the PKGBUILD and .install files when installing and upgrading packages. Defaults in this order if not specified: vim emacs vi nano most less more cat
 .IP "$SPINTMPDIR"
 If specified the spinach build and cache directories will be stored in spinach/ in this folder. If not specified, it will default to $TMPDIR if specified and as a last resort /tmp.
+.IP "$MAXTHREADS"
+If specified this will be the max number of curl instances started to find out-of-date packages. If not specified, it defaults to 10. Note: the number of threads will actually be one more than this number assuming that there are at least that many packages to check.
 .SH NOTES
 .IP "View Files"
 When you install packages using Spinach, you will be forced to view the PKGBUILD and .install files. This is not supposed to be "annoying." It is for your safety. Read them. They could easily delete your files if you don't.
