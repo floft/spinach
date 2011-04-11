@@ -6,7 +6,7 @@ spinach \- A small AUR helper written in Bash.
 [options] [operation] [package]
 .SH DESCRIPTION
 .B spinach
-is a very tiny AUR helper written in Bash that will help you download, install, and update packages from the AUR. If you want to learn more about it, please go to the website (on the Floft Wiki): http://floft.net/wiki/Scripts/Spinach
+is a very tiny AUR helper written in Bash that will help you download, install, and update packages from the AUR.
 .SH OPTIONS
 .IP "-ssl"
 Use SSL when downloading packages and information from the AUR. If this option is specified, spinach will not use multiple threads when finding updates (-u, -o, -do) since testing revealed this would not help the speed at all. This option has no effect on the pacman operations enabled with the '-rep' option.
@@ -37,20 +37,23 @@ Download all the AUR packages that have a different version than the one in the 
 Specify the text editor to use in order to view the PKGBUILD and .install files when installing and upgrading packages. Defaults in this order if not specified: vim emacs vi nano most less more cat
 .IP "$SPINTMPDIR"
 If specified the spinach build and cache directories will be stored in spinach/ in this folder. If not specified, it will default to $TMPDIR if specified and as a last resort /tmp.
+.SH NOTES
+.IP "View Files"
+When you install packages using Spinach, you will be forced to view the PKGBUILD and .install files. This is not supposed to be "annoying." It is for your safety. Read them. They could easily delete your files if you don't.
+.IP "Running as Root"
+Never run Spinach as root. It will run makepkg as root which will run the PKGBUILD as root. You don't want that.
+.IP "No Internet"
+If there is no Internet connection, Spinach probably won't print anything for most operations.
+.IP "Version Control"
+If you have some version-control package (-svn, -git, -hg, etc.) and you want to keep the trunk while updating, upgrade the package manually instead of using the automatic upgrade operation (-u). After installing an application (or upgrading) spinach will remove the files from the spinach/build/ directory.
+.IP "Spinach Cache"
+When you install or upgrade an application, the build directory in your temporary directory is deleted, but the generated package (if it was successfully created) will be copied to $SPINTMPDIR/spinach/cache/<bunch of text>.pkg.tar.xz (see VARIABLES for more information on the $SPINTMPDIR variable).
 .SH EXAMPLES
-spinach -s package
-.PP
-spinach -p package
-.PP
-spinach -i package
-.PP
 spinach -u
 .TP
-spinach -ssl -p package1 -d package2 -d package3 -dd package4 -do
-Specify multiple commands.
+spinach -ssl -p package1 -dd package2 -do
 .TP
-source /usr/bin/spinach -col
-Source the spinach script to use in other scripts.
+source /usr/bin/spinach -col; aur_info spinach
 .TP
 spinach $(/usr/bin/spinach -sq openlp | sed 's/^/ -dd /g')
 Download all AUR packages returned from a search.
