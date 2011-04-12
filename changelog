@@ -1,3 +1,6 @@
+0.3.98:
+	* made for looping over threads use ${!q[@]} for array instead
+	  of $(seq 0 $((${#q[@]}-1)))
 0.3.97:
 	* added MAXTHREADS to set max number (+1) of curl instances
 	* made SSL be multithreaded also (above fixed speed issue)
