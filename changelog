@@ -1,3 +1,7 @@
+0.3.99:
+	* changed 'su -c blah' to 'su root -c blah'
+	* changed some [[ to ((
+	* decreased thread wait time from 0.1 to 0.05
 0.3.98:
 	* made for looping over threads use ${!q[@]} for array instead
 	  of $(seq 0 $((${#q[@]}-1)))

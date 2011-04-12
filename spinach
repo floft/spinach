@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.3.98"
+VE="0.3.99"
 ssl=;col=;col1=;col2=;nc=;rep=
 AURURL="http%s://aur.archlinux.org"
 AURPC="$AURURL/rpc.php?type=%s&arg=%s"
@@ -196,8 +196,8 @@ aur_find_updates() {
 		curl -sA "$UA" -m 5 --retry-delay 1 --retry 4 $urls >> "$aur_versions" &
 		curl_kill_list="$! $curl_kill_list"
 	done
-	while [[ $(jobs|wc -l) > 0 ]]; do #wait for threads
-		sleep 0.1
+	while (( $(jobs|wc -l) > 0 )); do #wait for threads
+		sleep 0.05
 		jobs &>/dev/null
 	done
 	inaur="$(cat "$aur_versions" | sed -re '
@@ -301,8 +301,8 @@ pacman_run() {
 		aur_message "Running" "sudo pacman "$@
 		sudo pacman $@
 	else
-		aur_message "Running" "su -c pacman "$@
-		su -c "pacman $@"
+		aur_message "Running" "su root -c pacman "$@
+		su root -c "pacman $@"
 	fi
 	
 	return $?
