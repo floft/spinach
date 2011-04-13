@@ -1,3 +1,6 @@
+POSSIBLE:
+	* line 99: on upgrade check for new depends
+
 0.3.99:
 	* improved code
 	  * changed 'su -c blah' to 'su root -c blah'

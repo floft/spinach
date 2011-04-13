@@ -96,9 +96,7 @@ aur_update() {
 					aur_message "Missing" "$tmp/build/$i/PKGBUILD"
 				fi
 			fi
-			#cd "$tmp/build"
-			#aur_download_deps "$i" install
-			#cd "$tmp/build"
+			#cd "$tmp/build && aur_download_deps "$i" install
 		fi
 	done
 	#clean
@@ -148,7 +146,7 @@ aur_download_deps() { # $1=package; $2=whether to install; $3=install with --asd
 	fi
 	#non-installed depends (only skip when installing)
 	[ -n "$2" ] && depends=$(pacman -T $depends)
-	#find if depends are provided for already
+	#find if depends are in pacman repos
 	provides="$(pacman -Si $(pacman -Ssq "($(tr ' ' '|' <<< "$depends"))"||echo -h) | \
 		grep -E "^(Name|Provides)" | sed -r '
 		s/^[^:]*: //mg
@@ -271,8 +269,7 @@ aur_create_tmp() {
 	fi
 }
 aur_display_color() {
-	nl=""
-	[ "$1" == "nl" ] && nl="\n"
+	nl=""; [ "$1" == "nl" ] && nl="\n"
 	[ -n "$col" ] && echo -en "$(cat - | sed -r '
 		s/^([^: \t]+[^:]*): +/\'$col'\1\'$nc': /g')$nl" || cat -
 }
