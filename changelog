@@ -1,7 +1,15 @@
 0.3.99:
-	* changed 'su -c blah' to 'su root -c blah'
-	* changed some [[ to ((
+	* improved code
+	  * changed 'su -c blah' to 'su root -c blah'
+	  * changed some [[ to ((
+	  * removed all uses of xargs
+	  * changed some *blah to ./*blah
+	  * changed a lot of 'echo blah | cmd' to 'cmd <<< blah'
 	* decreased thread wait time from 0.1 to 0.05
+	* improved speed of aur_download_deps when a lot of depends
+	  are specified (only run pacman once)
+	* moved pkgbuild depend checks to aur_pkgbuild_deps, allowing
+	  easier creation of new depend checks on update in the future
 0.3.98:
 	* made for looping over threads use ${!q[@]} for array instead
 	  of $(seq 0 $((${#q[@]}-1)))

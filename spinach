@@ -34,9 +34,7 @@ aur_info() {
 		info="$(pacman -Si "$1" 2>/dev/null)"
 		gotinfo=$?
 		
-		if [ -n "$info" ]; then
-			echo "$info" | aur_display_color
-		fi
+		[ -n "$info" ] && aur_display_color <<< "$info"
 	fi
 	if [ -z "$rep" ] || [ "$gotinfo" != "0" ]; then
 		curl -sA "$UA" "$(printf $AURPC "$ssl" info "$1")" | sed -r '
@@ -87,17 +85,23 @@ aur_update() {
 		rm \"$tmp/update.lock\";echo;exit 1" 2 15
 	#download and install after confirming
 	IFS=$' '
-	for i in $download; do
-		ask_yes_no "Update ${i}?"
+	for q in $download; do
+		ask_yes_no "Update ${q}?"
 		if [ "$response" == "y" ]; then
-			if aur_download "$i" installed; then
-				downloaded="$downloaded $i"
-				if [ -e "$i/PKGBUILD" ]; then
-					cd "$i" && aur_run_install
-				else
-					aur_message "Missing" "$tmp/build/$i/PKGBUILD"
-				fi
-			fi
+			#if aur_download "$q" installed; then
+			#	downloaded="$downloaded $q"
+			#	if [ -e "$q/PKGBUILD" ]; then
+			#		#check new depends
+			#		#aur_pkgbuild_deps "$q" install && for t in ${dependencies[@]}; \
+			#		#	do aur_download_deps "$t" install "asdep"; done
+			#		#install
+			#		#cd "$q" && aur_run_install
+			#		
+			#	else
+			#		aur_message "Missing" "$tmp/build/$q/PKGBUILD"
+			#	fi
+			#fi
+			aur_download_deps "$q" install
 			cd "$tmp/build"
 		fi
 	done
@@ -135,29 +139,11 @@ aur_download() {
 }
 aur_download_deps() { # $1=package; $2=whether to install; $3=install with --asdeps
 	aur_download "$1" "$2" && downloaded="$downloaded $1" || return 1
-	#get PKGBUILD depends
-	if [ -e "$1/PKGBUILD" ]; then
-		depends="$(cat "$1/PKGBUILD" | tr '\n' ' ' | \
-			grep -Eo " (make)?depends=\([^)]*\)" 2>/dev/null | sed -r "
-			s/.*\((.*)\).*/\1/mg
-			s/(['\"])([^><=']*)[><=]+[^'\"]*\1/\2/mg
-			s/['\"]//mg" | tr '\n' ' ' | sed -r "s/\\\$[^ ]+ //mg")"
-	else
-		aur_message "Missing" "$(pwd)/$1/PKGBUILD"
-		return 1
-	fi
-	#non-installed depends (only skip when installing)
-	[ -n "$2" ] && depends=$(pacman -T $depends)
-	#download if in the AUR
-	for i in $depends; do
-		pacman -Si $(pacman -Ssq "$i" || echo -h) | \
-			grep -E "^(Name|Provides)" | sed -r '
-			s/^[^:]*: //mg
-			s/=[^ ]*//mg' | tr ' ' '\n' | grep "^$i$" &>/dev/null
-		
-		if [ "$?" == "1" ] && [ ! -e "$i/" ]; then
-			aur_download_deps "$i" "$2" "asdep"
-		fi
+	#get PKGBUILD depends (outputs to $dependencies)
+	aur_pkgbuild_deps "$1" "$2" || return 1
+	#download
+	for i in ${dependencies[@]}; do
+		aur_download_deps "$i" "$2" "asdep"
 	done
 	#install
 	if [ "$2" == "install" ]; then
@@ -178,7 +164,7 @@ aur_find_updates() {
 	#remove ignored
 	ignore="$(grep ^IgnorePkg /etc/pacman.conf | sed -e "s/.*=\ //g")"
 	for i in $ignore; do
-		p="$(echo "$p" | grep -v "$i")"
+		p="$(grep -v "$i" <<< "$p")"
 	done
 	#get versions from aur with multiple threads
 	aur_versions="$tmp/findupdates_$$"
@@ -212,13 +198,13 @@ aur_find_updates() {
 	#find differences
 	IFS=$'\n'
 	for i in $inaur; do
-		name="$(echo $i | cut -f1)"
+		name="$(cut -f1 <<< "$i")"
 		#up-to-date version
-		up="$(echo $i | cut -f2)"
+		up="$(cut -f2 <<< "$i")"
 		#installed version
-		in="$(echo "$inlocal" | grep -A 1 "^$name$" | tail -n 1)"
+		in="$(grep -A 1 "^$name$" <<< "$inlocal" | tail -n 1)"
 		
-		if [ -z "$(echo "$up" | grep "No result found")" ] \
+		if [ -z "$(grep "No result found" <<< "$up")" ] \
 		&& [ -n "$up" ] && [ -n "$in" ] && [ "$up" != "$in" ]; then
 			[ -n "$1" ] && download="$download $name"
 			printf "${col}%s${nc} (${col3}%s${nc} => ${col2}%s${nc})\n" \
@@ -255,7 +241,7 @@ aur_run_install() {
 			fi
 		done
 		#copy to cache
-		mv *.pkg.tar.xz "../../cache" &>/dev/null
+		mv ./*.pkg.tar.xz "../../cache" &>/dev/null
 	fi
 	#clean
 	rm -rf "$pwd/" &>/dev/null
@@ -270,20 +256,46 @@ aur_create_tmp() {
 		return 1
 	fi
 }
-aur_display_color() {
-	if [ -n "$col" ] && type xargs &>/dev/null; then
-		cat /dev/stdin | sed -r 's/^([^: \t]+[^:]*): +/\'$col'\1\'$nc': /g' \
-			| xargs -0 echo -en
+aur_pkgbuild_deps() {
+	dependencies=()
+
+	if [ -e "$1/PKGBUILD" ]; then
+		#get PKGBUILD depends
+		depends="$(cat "$1/PKGBUILD" | tr '\n' ' ' | \
+			grep -Eo " (make)?depends=\([^)]*\)" 2>/dev/null | sed -r "
+			s/.*\((.*)\).*/\1/mg
+			s/(['\"])([^><=']*)[><=]+[^'\"]*\1/\2/mg
+			s/['\"]//mg" | tr '\n' ' ' | sed -r "s/\\\$[^ ]+ //mg")"
+		#non-installed depends (only skip when installing)
+		[ -n "$2" ] && depends="$(pacman -T $depends)"
+		#find if depends in pacman repos
+		provided="$(pacman -Si $(pacman -Ssq "($(tr ' ' '|' <<< "$depends"))"||echo -h) | \
+			grep -E "^(Name|Provides)" | sed -r '
+			s/^[^:]*: //mg
+			s/=[^ ]*//mg' | tr ' ' '\n')"
+		#download if in the AUR
+		for i in $depends; do
+			if ! grep "^$i$" <<< "$provided" &>/dev/null && [ ! -e "$i/" ]; then
+				dependencies+=("$i")
+			fi
+		done
+		
+		return 0
 	else
-		cat /dev/stdin
+		aur_message "Missing" "$(pwd)/$1/PKGBUILD"
+		return 1
 	fi
+}
+aur_display_color() {
+	[ -n "$col" ] && echo -en "$(cat - | sed -r '
+		s/^([^: \t]+[^:]*): +/\'$col'\1\'$nc': /g')\n" || cat -
 }
 aur_message() {
 	message="$1";shift;rest="$@"
 	printf "${col}%s${nc}: %s\n" "$message" "$rest"
 }
 blank_arg() {
-	[ -z "$1" ] && aur_message "Please specify a package." && exit 1
+	[ -z "$1" ] && aur_message "Error" "Please specify a package." && exit 1
 }
 ask_yes_no() {
 	while true; do
