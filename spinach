@@ -15,6 +15,7 @@ aur_search() {
 		fi
 		curl -sA "$UA" "$(printf $AURPC "$ssl" search "$1")" | sed -r '
 		s/.*(No results found).*/\1/g
+		s/"Version":"[^"]+"//g
 		s/\\"/\&QUOT;/g
 		s/.*\[([^"]*)\]}}/\1/g
 		s/\{[^}]*"Name":"([^"]*)",[^}]*,"Description":"([^"]*)"[^}]*\}/\1: \2\n/g

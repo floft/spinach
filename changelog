@@ -1,6 +1,9 @@
 POSSIBLE:
 	* line 99: on upgrade check for new depends
 
+0.4.0:
+	* fixed problem when search results includes package that has a '}' in
+	  the version number (which I think is bad to begin with... but anyway)
 0.3.99:
 	* improved code
 	  * changed 'su -c blah' to 'su root -c blah'
