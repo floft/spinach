@@ -11,7 +11,7 @@ aur_search() {
 	if [ -z "$2" ]; then
 		if [ -n "$rep" ]; then
 			pacman -Ss "$1" | sed -r 's/^([^/\s]+\/[^ ]+) [^\n]+$/\1/g' | \
-				sed -rn '1h;1!H;${;g;s/\n\s+/: /g;p;}' | aur_display_color
+				sed -rn '1h;1!H;${;g;s/\n\s+/: /g;p;}' | aur_display_color nl
 		fi
 		curl -sA "$UA" "$(printf $AURPC "$ssl" search "$1")" | sed -r '
 		s/.*(No results found).*/\1/g
