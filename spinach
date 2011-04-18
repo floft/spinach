@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.3.99"
+VE="0.4.0"
 ssl=;col=;col1=;col2=;nc=;rep=
 AURURL="http%s://aur.archlinux.org"
 AURPC="$AURURL/rpc.php?type=%s&arg=%s"
@@ -98,6 +98,7 @@ aur_update() {
 					aur_message "Missing" "$tmp/build/$i/PKGBUILD"
 				fi
 			fi
+			cd "$tmp/build"
 			#cd "$tmp/build && aur_download_deps "$i" install
 		fi
 	done

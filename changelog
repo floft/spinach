@@ -6,6 +6,8 @@ POSSIBLE:
 	  the version number (which I think is bad to begin with... but anyway)
 	* added newline to search results with -rep specified
 	* print not found when search result is  ^{"type":"error"
+	* cd into build directory after every update (otherwise you'll have a
+	  lot of "Not Saved" messages if you update more than one package)
 0.3.99:
 	* improved code
 	  * changed 'su -c blah' to 'su root -c blah'
