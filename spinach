@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.0"
+VE="0.4.1"
 ssl=;col=;col1=;col2=;nc=;rep=
 AURURL="http%s://aur.archlinux.org"
 AURPC="$AURURL/rpc.php?type=%s&arg=%s"
@@ -11,7 +11,7 @@ aur_search() {
 	if [ -z "$2" ]; then
 		if [ -n "$rep" ]; then
 			pacman -Ss "$1" | sed -r 's/^([^/\s]+\/[^ ]+) [^\n]+$/\1/g' | \
-				sed -rn '1h;1!H;${;g;s/\n\s+/: /g;p;}' | aur_display_color nl
+				sed -rn '1h;1!H;${;g;s/\n\s+/: /g;p;}' | aur_display_color
 		fi
 		curl -sA "$UA" "$(printf $AURPC "$ssl" search "$1")" | sed -r '
 		s/.*(No results found).*/\1/g
@@ -24,7 +24,7 @@ aur_search() {
 		s/\\\//\//mg
 		s/\\\\/\\/mg
 		s/\&QUOT;/"/mg
-		s/^]}//mg' | aur_display_color nl
+		s/^]}//mg' | aur_display_color
 	else
 		[ -n "$rep" ] && pacman -Ssq "$1"
 		curl -sA "$UA" "$(printf $AURPC "$ssl" search "$1")" | \
@@ -36,7 +36,7 @@ aur_info() {
 		info="$(pacman -Si "$1" 2>/dev/null)"
 		gotinfo=$?
 		
-		[ -n "$info" ] && aur_display_color nl <<< "$info"
+		[ -n "$info" ] && aur_display_color <<< "$info"
 	fi
 	if [ -z "$rep" ] || [ "$gotinfo" != "0" ]; then
 		curl -sA "$UA" "$(printf $AURPC "$ssl" info "$1")" | sed -r '
@@ -272,9 +272,8 @@ aur_create_tmp() {
 	fi
 }
 aur_display_color() {
-	nl=""; [ "$1" == "nl" ] && nl="\n"
-	[ -n "$col" ] && echo -en "$(cat - | sed -r '
-		s/^([^: \t]+[^:]*): +/\'$col'\1\'$nc': /g')$nl" || cat -
+	[ -n "$col" ] && cat - | sed -r 's/^([^: \t]+[^:]*): +/\'$col'\1\'$nc': /g' | \
+		xargs -0 echo -en || cat -
 }
 aur_message() {
 	message="$1";shift;rest="$@"
