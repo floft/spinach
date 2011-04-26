@@ -1,12 +1,11 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.1"
+VE="0.4.11"
 ssl=;col=;col1=;col2=;nc=;rep=
 AURURL="http%s://aur.archlinux.org"
 AURPC="$AURURL/rpc.php?type=%s&arg=%s"
 [ -z "$MAXTHREADS" ] && MAXTHREADS=10
 
-#functions so you can `. spinach -col`
 aur_search() {
 	if [ -z "$2" ]; then
 		if [ -n "$rep" ]; then
@@ -14,7 +13,7 @@ aur_search() {
 				sed -rn '1h;1!H;${;g;s/\n\s+/: /g;p;}' | aur_display_color
 		fi
 		curl -sA "$UA" "$(printf $AURPC "$ssl" search "$1")" | sed -r '
-		s/.*(No results found).*/\1/g
+		s/.*(No results found).*/\1\n/g
 		s/^\{"type":"error".*/No results found/g
 		s/"Version":"[^"]+"//g
 		s/\\"/\&QUOT;/g
