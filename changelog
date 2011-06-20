@@ -1,6 +1,10 @@
 POSSIBLE:
 	* line 99: on upgrade check for new depends
 
+0.4.12:
+	* only update packages that are older... don't list ones that
+	  are newer; added version_cmp function
+	* use nullglob during pacman install
 0.4.11:
 	* more newline fixes (one was when nothing was returned for
 	  a search)

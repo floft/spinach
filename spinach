@@ -1,7 +1,7 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.11"
-ssl=;col=;col1=;col2=;nc=;rep=
+VE="0.4.12"
+unset ssl col col1 col2 nc rep
 AURURL="http%s://aur.archlinux.org"
 AURPC="$AURURL/rpc.php?type=%s&arg=%s"
 [ -z "$MAXTHREADS" ] && MAXTHREADS=10
@@ -219,7 +219,8 @@ aur_find_updates() {
 		in="$(grep -A 1 "^$name$" <<< "$inlocal" | tail -n 1)"
 		
 		if [ -z "$(grep "No result found" <<< "$up")" ] \
-		&& [ -n "$up" ] && [ -n "$in" ] && [ "$up" != "$in" ]; then
+		&& [ -n "$up" ] && [ -n "$in" ] && [ "$up" != "$in" ] \
+		&& version_cmp "$in" "$up"; then
 			[ -n "$1" ] && download="$download $name"
 			printf "${col}%s${nc} (${col3}%s${nc} => ${col2}%s${nc})\n" \
 				"$name" "$in" "$up"
@@ -293,6 +294,7 @@ ask_yes_no() {
 	done
 }
 pacman_run() {
+	shopt -s nullglob
 	if type sudo &>/dev/null; then
 		aur_message "Running" "sudo pacman "$@
 		sudo pacman $@
@@ -300,6 +302,7 @@ pacman_run() {
 		aur_message "Running" "su root -c pacman "$@
 		su root -c "pacman $@"
 	fi
+	shopt -u nullglob
 	
 	return $?
 }
@@ -317,6 +320,73 @@ blank_editor() {
 			return 1
 		fi
 	fi
+}
+version_cmp() { #"epoch:pkgver-pkgrel" "epoch:pkgver-pkgrel"
+	gt=2 #1>2
+	eq=1   #1=2
+	lt=0    #1<2 (if version_cmp blah blah; then update; fi)
+	what=3
+	alpha=$(echo {a..z}|tr -d [:space:])
+
+	e1="$(cut -d: -f1<<<"$1")"
+	e2="$(cut -d: -f1<<<"$2")"
+	v1="$(cut -d: -f2<<<"$1"|cut -d- -f1)"
+	v2="$(cut -d: -f2<<<"$2"|cut -d- -f1)"
+	r1="$(cut -d: -f2<<<"$1"|cut -d- -f2)"
+	r2="$(cut -d: -f2<<<"$2"|cut -d- -f2)"
+
+	[ "$1" == "$2" ] && return $eq
+	#epochs
+	(( "$(expr index "$1" :)" == 0 )) && e1=""
+	(( "$(expr index "$2" :)" ==  0 )) && e2=""
+	[ -n "$e1" ] && [ -z "$e2" ] && return $gt
+	[ -z "$e1" ] && [ -n "$e2" ] && return $lt
+	if [ -n "$e1" ] && [ -n "$e2" ]; then
+		(( $e1 > $e2 )) && return $gt
+		(( $e1 < $e2 )) && return $lt
+	fi
+	#epochs are equal; now for versions
+	if [ "$v1" != "$v2" ]; then
+		dots1=$(sed 's/[^\.]//g'<<<"$v1"|tr -d '[:space:]'|wc -m)
+		dots2=$(sed 's/[^\.]//g'<<<"$v1"|tr -d '[:space:]'|wc -m)
+		(( $dots1 > $dots2 )) && dots=$dots1 || dots=$dots2
+		dotseq=$(seq 1 $(($dots+1)))
+		[ -z "$dotseq" ] && dotseq="1"
+		for i in $dotseq; do
+			vd1=$(cut -d. -f$i<<<"$v1")
+			vd2=$(cut -d. -f$i<<<"$v2")
+			vd1na=$(sed 's/[^0-9]//g'<<<"$vd1")
+			vd2na=$(sed 's/[^0-9]//g'<<<"$vd2")
+			(( $vd1na > $vd2na )) && return $gt
+			(( $vd1na < $vd2na )) && return $lt
+
+			if [ "$vd1" != "$vd2" ]; then #there are a-zA-Z
+				vd1a=$(sed 's/[^a-zA-Z]//g'<<<"$vd1")
+				vd2a=$(sed 's/[^a-zA-Z]//g'<<<"$vd2")
+				vd1oa=$(sed -r 's/(.)/\1 /g'<<<"$vd1a")
+				vd2oa=$(sed -r 's/(.)/\1 /g'<<<"$vd2a")
+				vd1l=$(tr -d [:space:]<<<"$vd1a"|wc -m)
+				vd2l=$(tr -d [:space:]<<<"$vd2a"|wc -m)
+				(( $vd1l > $vd2l )) && lettotal=$vd1l || lettotal=$vd2l
+
+				for l in $(seq 1 $(($lettotal+1))); do
+					vd1oal=$(cut -d' ' -f$l<<<"$vd1oa")
+					vd2oal=$(cut -d' ' -f$l<<<"$vd2oa")
+					[ -n "$vd1oal" ] && [ -z "$vd2oal" ] && return $gt
+					[ -z "$vd1oal" ] && [ -n "$vd2oal" ] && return $lt
+					vd1lindex=$(expr index $alpha $vd1oal)
+					vd2lindex=$(expr index $alpha $vd2oal)
+					(( $vd1lindex > $vd2lindex )) && return $gt
+					(( $vd1lindex < $vd2lindex )) && return $lt
+				done
+			fi
+		done
+	fi
+	#epochs & versions are equal; now for rel
+	(( $r1 > $r2 )) && return $gt
+	(( $r1 < $r2 )) && return $lt
+	#everything is equal, yet somehow not; what in the world...
+	return $what
 }
 
 while [ -n "$1" ]; do
