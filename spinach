@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.12"
+VE="0.4.13"
 unset ssl col col1 col2 nc rep
 AURURL="http%s://aur.archlinux.org"
 AURPC="$AURURL/rpc.php?type=%s&arg=%s"
@@ -298,13 +298,15 @@ pacman_run() {
 	if type sudo &>/dev/null; then
 		aur_message "Running" "sudo pacman "$@
 		sudo pacman $@
+		pacret=$?
 	else
 		aur_message "Running" "su root -c pacman "$@
 		su root -c "pacman $@"
+		pacret=$?
 	fi
 	shopt -u nullglob
 	
-	return $?
+	return $pacret
 }
 blank_editor() {
 	if [ -z "$EDITOR" ]; then
