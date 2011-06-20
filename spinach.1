@@ -1,4 +1,4 @@
-.TH spinach 1 "2011-04-11" "Spinach 0.3" "Spinach"
+.TH spinach 1 "2011-06-20" "Spinach 0.4" "Spinach"
 .SH NAME
 spinach \- A small AUR helper written in Bash.
 .SH SYNOPSIS
@@ -29,9 +29,9 @@ Download the specified package from the AUR and extract the tarball in the curre
 .IP "-dd"
 Download the specified package from the AUR and any AUR dependencies to the current directory.
 .IP "-o"
-List packages that have a different version than the one in the AUR.
+List packages that are older than the one in the AUR.
 .IP "-do"
-Download all the AUR packages that have a different version than the one in the AUR to the current directory.
+Download all the AUR packages that are older than the one in the AUR to the current directory.
 .SH VARIABLES 
 .IP "$EDITOR"
 Specify the text editor to use in order to view the PKGBUILD and .install files when installing and upgrading packages. Defaults in this order if not specified: vim emacs vi nano most less more cat
