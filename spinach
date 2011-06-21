@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.14"
+VE="0.4.15"
 unset ssl col col1 col2 nc rep
 AURURL="http%s://aur.archlinux.org"
 AURPC="$AURURL/rpc.php?type=%s&arg=%s"
@@ -162,9 +162,10 @@ aur_download_deps() { # $1=package; $2=whether to install; $3=install with --asd
 	#install
 	if [ "$2" == "install" ]; then
 		if [ -e "$1/PKGBUILD" ]; then
+			dir="$(pwd)"
 			cd "$1"
 			aur_run_install "$3"
-			cd ..
+			cd "$dir"
 		else
 			aur_message "Missing" "$(pwd)/$1/PKGBUILD"
 			rm -rf "$1/" &>/dev/null
@@ -259,6 +260,7 @@ aur_run_install() {
 		mv ./*.pkg.tar.xz "../../cache" &>/dev/null
 	fi
 	#clean
+	cd ../
 	rm -rf "$pwd/" &>/dev/null
 }
 aur_create_tmp() {
