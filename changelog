@@ -1,6 +1,9 @@
 POSSIBLE:
 	* line 99: on upgrade check for new depends
 
+0.4.16:
+	* when a pkgbuild depends on a program in a repo and you don't have
+	  it, it will now not say "Not Found: blah"
 0.4.15:
 	* fixed seg fault when installing 'pngcrush'
 0.4.14:

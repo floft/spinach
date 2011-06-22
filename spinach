@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.15"
+VE="0.4.16"
 unset ssl col col1 col2 nc rep
 AURURL="http%s://aur.archlinux.org"
 AURPC="$AURURL/rpc.php?type=%s&arg=%s"
@@ -149,7 +149,7 @@ aur_download_deps() { # $1=package; $2=whether to install; $3=install with --asd
 	#non-installed depends (only skip when installing)
 	[ -n "$2" ] && depends=$(pacman -T $depends)
 	#find if depends are in pacman repos
-	provides="$(pacman -Si $(pacman -Ssq "($(tr ' ' '|' <<< "$depends"))"||echo -h) | \
+	provides="$(pacman -Si $(pacman -Ssq "($(tr ' ' '|' <<< "$depends"|tr '\n' '|'))"||echo -h) | \
 		grep -E "^(Name|Provides)" | sed -r '
 		s/^[^:]*: //mg
 		s/=[^ ]*//mg' | tr ' ' '\n')"
