@@ -1,22 +1,28 @@
-.TH spinach 1 "2011-06-20" "Spinach 0.4" "Spinach"
+.TH spinach 1 "2011-08-04" "Spinach 0.4" "Spinach"
 .SH NAME
 spinach \- A small AUR helper written in Bash.
 .SH SYNOPSIS
 .B spinach
-[options] [operation] [package]
+[options] [operation] [packages]
 .SH DESCRIPTION
 .B spinach
 is a very tiny AUR helper written in Bash that will help you download, install, and update packages from the AUR.
 .SH OPTIONS
-.IP "-ssl"
-Use SSL when downloading packages and information from the AUR. This option has no effect on the pacman operations enabled with the '-rep' option.
-.IP "-col"
+.IP "--[no]ssl"
+Use SSL when downloading packages and information from the AUR. This option has no effect on the pacman operations enabled with the '--rep' option.
+.IP "--[no]col"
 Use color in certian places.
-.IP "-rep"
+.IP "--[no]rep"
 Also use pacman for \fIsearch\fR, \fIprint\fR, and \fIinstall\fR operations. Searching will return results from both the AUR and official repositories. Printing information will return information from pacman if available and the AUR if not. Installing will install via the official repositories if found and attempt to install from the AUR otherwise.
+.IP "--edit"
+Specify the text editor to use in order to view the PKGBUILD and .install files when installing and upgrading packages. Defaults in this order if not specified: $EDITOR vim emacs vi nano most less more cat
+.IP "--tmp"
+If specified the spinach build and cache directories will be stored in spinach/ in this folder. If not specified, it will default to $TMPDIR if specified and as a last resort /tmp.
+.IP "--max"
+If specified this will be the max number of curl instances started to find out-of-date packages. If not specified, it defaults to 10. Note: the number of threads will actually be one more than this number assuming that there are at least that many packages to check.
 .SH COMMON OPERATIONS
 .IP "-s"
-Search for the specified package. A very similar option is '-sq' which prints only the package name from the search. This allows you to pipe the results to grep to do regex searching. See the EXAMPLES section.
+Search for the specified package. A very similar option is '-sq' which prints only the package name from the search. This allows you to pipe the results to grep to do regex searching. See the EXAMPLES section. Results from '-s' will be sorted; results from '-sq' will not be.
 .IP "-p"
 Print information for the specified package.
 .IP "-i"
@@ -32,13 +38,17 @@ Download the specified package from the AUR and any AUR dependencies to the curr
 List packages that are older than the one in the AUR.
 .IP "-do"
 Download all the AUR packages that are older than the one in the AUR to the current directory.
-.SH VARIABLES 
-.IP "$EDITOR"
-Specify the text editor to use in order to view the PKGBUILD and .install files when installing and upgrading packages. Defaults in this order if not specified: vim emacs vi nano most less more cat
-.IP "$SPINTMPDIR"
-If specified the spinach build and cache directories will be stored in spinach/ in this folder. If not specified, it will default to $TMPDIR if specified and as a last resort /tmp.
-.IP "$MAXTHREADS"
-If specified this will be the max number of curl instances started to find out-of-date packages. If not specified, it defaults to 10. Note: the number of threads will actually be one more than this number assuming that there are at least that many packages to check.
+.SH CONFIG (optional)
+.IP "UseSSL UseRepos UseColor"
+Same as specifying --ssl, --rep, and --col.
+.IP "Color1 Color2 Color3"
+Colors used if UseColor is uncommented.
+.IP "Threads"
+Same as specifying --max #.
+.IP "Temp"
+Same as specifying --tmp dir
+.IP "Editor"
+Same as specifying --edit editor, overrides the $EDITOR variable.
 .SH NOTES
 .IP "View Files"
 When you install packages using Spinach, you will be forced to view the PKGBUILD and .install files. This is not supposed to be "annoying." It is for your safety. Read them. They could easily delete your files if you don't.
@@ -50,17 +60,19 @@ If there is no Internet connection, Spinach probably won't print anything for mo
 If you have some version-control package (-svn, -git, -hg, etc.) and you want to keep the trunk while updating, upgrade the package manually instead of using the automatic upgrade operation (-u). After installing an application (or upgrading) spinach will remove the files from the spinach/build/ directory.
 .IP "Spinach Cache"
 When you install or upgrade an application, the build directory in your temporary directory is deleted, but the generated package (if it was successfully created) will be copied to $SPINTMPDIR/spinach/cache/<bunch of text>.pkg.tar.xz (see VARIABLES for more information on the $SPINTMPDIR variable).
+.IP "Config versus Options"
+Options specified (e.g. --ssl) will override whatever is in the config file (e.g. UseSSL).
 .SH EXAMPLES
 spinach -u
 .TP
-spinach -ssl -p package1 -dd package2 -do
+spinach --ssl -p package1 package2
 .TP
-source /usr/bin/spinach -col; aur_info spinach
+source /usr/bin/spinach --col; aur_info spinach
 .TP
-spinach $(/usr/bin/spinach -sq openlp | sed 's/^/ -dd /g')
+spinach --col -dd $(/usr/bin/spinach -sq openlp)
 Download all AUR packages returned from a search.
 .TP
-spinach -sq kernel | grep -E "26-(lts|pf)"
+spinach --rep -sq kernel | grep -E "26-(pf|ice|lts)$"
 Regular expression searching
 .SH AUTHOR
 Garrett (http://floft.net/contact)

@@ -1,0 +1,26 @@
+# 
+# This is an optional spinach config file. If you want to use it, 
+# place this example config in either:
+# 	$XDG_CONFIG_HOME/spinach/config or
+# 	$HOME/.config/spinach/config
+# 
+# See `man spinach' for more information.
+# 
+
+UseSSL
+UseRepos
+UseColor
+
+##Colors to use 
+Color1=\e[0;31m
+Color2=\e[0;32m
+Color3=\e[0;34m
+
+##Max number of threads to use
+Threads=10
+
+##Temporary directory (absolute path)
+#Temp=/tmp
+
+##Prefered editor
+#Editor=vim

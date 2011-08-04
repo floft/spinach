@@ -1,6 +1,20 @@
 POSSIBLE:
 	* line 99: on upgrade check for new depends
 
+0.4.17:
+	* removed some grep ... &>/dev/null or 2>/dev/null; use -s and -q
+	* allow ~/.config/spinach/config for defaults
+	* added --max, --tmp, and --edit options
+	* all options are --option, all operations are -operation
+	* only one operation per spinach run, multiple packages allowed
+	  (a more standard way of doing things)
+	* added a little help funcion back in... it's only a few lines
+	* got rid of weird SPINTMPDIR and MAXTHREADS variables, made them
+	  options
+	* switched [ blah ] to [[ blah ]] and [ blah -gt 0 ] to (( blah > 0 ))
+	* added --nossl, --nocol, --norep options
+	* sort search results since it is normally expected to be (and since
+	  it doesn't display as it downloads it anyway)
 0.4.16:
 	* when a pkgbuild depends on a program in a repo and you don't have
 	  it, it will now not say "Not Found: blah"
