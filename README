@@ -1,3 +1,10 @@
 This is just a little Bash script to help Arch Linux users
 install from the AUR. For more information go to the site:
   http://floft.net/wiki/Scripts/Spinach
+
+Files:
+  config	sample config document
+  spinach	the AUR helper
+  spinach.1	the man page
+  test.sh	test some functionality
+  version_cmp	my [slow] version of vercmp
