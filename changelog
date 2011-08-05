@@ -1,5 +1,8 @@
 POSSIBLE:
 	* line 99: on upgrade check for new depends
+	* --needed ?
+	* view all .install and PKGBUILDs at beginning, compile all, install
+	  all that don't depend on an application that failed to compile
 
 0.4.18:
 	* changed a few more [[ 1 ]] && [[ 2 ]] to [[ 1 && 2 ]]
