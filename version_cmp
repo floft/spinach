@@ -1,0 +1,77 @@
+#!/bin/bash
+#
+# This script used to be how I did version comparisons; however,
+# I found vercmp (provided by pacman) that does the same thing, but
+# much faster. It is here just for reference.
+#
+# I replaced this:
+#	version_cmp "$in" "$up"
+# with this:
+#	[[ $(vercmp "$in" "$up") == -1 ]]
+#
+
+version_cmp() { #"epoch:pkgver-pkgrel" "epoch:pkgver-pkgrel"
+	gt=2 #1>2
+	eq=1   #1=2
+	lt=0    #1<2 (if version_cmp old new; then update; fi)
+	what=3
+	
+	#completely equal
+	[[ $1 == $2 ]] && return $eq
+
+	#separate
+	e1="$(cut -d: -f1<<<"$1")"
+	e2="$(cut -d: -f1<<<"$2")"
+	v1="$(cut -d: -f2<<<"$1"|cut -d- -f1)"
+	v2="$(cut -d: -f2<<<"$2"|cut -d- -f1)"
+	r1="$(cut -d: -f2<<<"$1"|cut -d- -f2)"
+	r2="$(cut -d: -f2<<<"$2"|cut -d- -f2)"
+
+	#epochs
+	[[ $1 != *:* ]] && e1=""
+	[[ $2 != *:* ]] && e2=""
+	[[ -n $e1 && -z $e2 ]] && return $gt
+	[[ -z $e1 && -n $e2 ]] && return $lt
+	if [[ -n $e1 && -n $e2 ]]; then
+		(( $e1 > $e2 )) && return $gt
+		(( $e1 < $e2 )) && return $lt
+	fi
+	#epochs are equal; now for versions
+	if [[ $v1 != $v2 ]]; then
+		dots1=$(sed 's/[^\.]//g'<<<"$v1"|tr -d '[:space:]'|wc -m)
+		dots2=$(sed 's/[^\.]//g'<<<"$v2"|tr -d '[:space:]'|wc -m)
+		(( $dots1 > $dots2 )) && dots=$dots1 || dots=$dots2
+		dotseq=$(seq 1 $(($dots+1)))
+		[[ -z $dotseq ]] && dotseq="1"
+		for i in $dotseq; do
+			im1=$(($i-1)) #1 < 1.0
+			(( $im1 > $dots1 )) && vd1="-1" || vd1=$(cut -d. -f$i<<<"$v1")
+			(( $im1 > $dots2 )) && vd2="-1" || vd2=$(cut -d. -f$i<<<"$v2")
+			vd1na=$(sed -r 's/([0-9\-]*).*/\1/g'<<<"$vd1")
+			vd2na=$(sed -r 's/([0-9\-]*).*/\1/g'<<<"$vd2")
+			(( $vd1na > $vd2na )) && return $gt
+			(( $vd1na < $vd2na )) && return $lt
+			(( $vd1na == $vd2na )) && [[ $vd1na != $vd2na ]] && {
+				(( $(wc -m<<<"$vd1na") < $(wc -m<<<"$vd2na") )) && \
+				return $gt || return $lt
+			}
+
+			#not just doing [[ above because 1.0a < 1.0
+			if [[ $vd1 != $vd2 ]]; then #there are a-zA-Z
+				vd1a=$(sed 's/[^a-zA-Z]//g'<<<"$vd1")
+				vd2a=$(sed 's/[^a-zA-Z]//g'<<<"$vd2")
+				vd1ac=$(tr -d '[:space:]'<<<"$vd1a"|wc -m)
+				vd2ac=$(tr -d '[:space:]'<<<"$vd2a"|wc -m)
+				(( $vd1ac == 0 && $vd2ac > 0  )) && return $gt
+				(( $vd1ac > 0  && $vd2ac == 0 )) && return $lt
+				[[ $vd1a > $vd2a ]] && return $gt
+				[[ $vd1a < $vd2a ]] && return $lt
+			fi
+		done
+	fi
+	#epochs & versions are equal; now for rel
+	(( $r1 > $r2 )) && return $gt
+	(( $r1 < $r2 )) && return $lt
+	#everything is equal, yet somehow not; probably a bug
+	return $what
+}

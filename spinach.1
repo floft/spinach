@@ -44,11 +44,11 @@ Same as specifying --ssl, --rep, and --col.
 .IP "Color1 Color2 Color3"
 Colors used if UseColor is uncommented.
 .IP "Threads"
-Same as specifying --max #.
+Same as specifying --max number
 .IP "Temp"
 Same as specifying --tmp dir
 .IP "Editor"
-Same as specifying --edit editor, overrides the $EDITOR variable.
+Same as specifying --edit editor, overrides $EDITOR
 .SH NOTES
 .IP "View Files"
 When you install packages using Spinach, you will be forced to view the PKGBUILD and .install files. This is not supposed to be "annoying." It is for your safety. Read them. They could easily delete your files if you don't.
@@ -59,17 +59,17 @@ If there is no Internet connection, Spinach probably won't print anything for mo
 .IP "Version Control"
 If you have some version-control package (-svn, -git, -hg, etc.) and you want to keep the trunk while updating, upgrade the package manually instead of using the automatic upgrade operation (-u). After installing an application (or upgrading) spinach will remove the files from the spinach/build/ directory.
 .IP "Spinach Cache"
-When you install or upgrade an application, the build directory in your temporary directory is deleted, but the generated package (if it was successfully created) will be copied to $SPINTMPDIR/spinach/cache/<bunch of text>.pkg.tar.xz (see VARIABLES for more information on the $SPINTMPDIR variable).
+When you install or upgrade an application, the build directory in your temporary directory is deleted, but the generated package (if it was successfully created) will be copied to $SPINTMPDIR/spinach/cache/<bunch of text>.pkg.tar.xz. You can set the Spinach temp directory either in the config file or with the --tmp option.
 .IP "Config versus Options"
 Options specified (e.g. --ssl) will override whatever is in the config file (e.g. UseSSL).
 .SH EXAMPLES
 spinach -u
 .TP
-spinach --ssl -p package1 package2
+spinach --nossl -p package1 package2
 .TP
 source /usr/bin/spinach --col; aur_info spinach
 .TP
-spinach --col -dd $(/usr/bin/spinach -sq openlp)
+spinach --col -dd $(spinach -sq openlp)
 Download all AUR packages returned from a search.
 .TP
 spinach --rep -sq kernel | grep -E "26-(pf|ice|lts)$"

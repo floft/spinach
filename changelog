@@ -1,6 +1,16 @@
 POSSIBLE:
 	* line 99: on upgrade check for new depends
 
+0.4.18:
+	* changed a few more [[ 1 ]] && [[ 2 ]] to [[ 1 && 2 ]]
+	* fixed version_cmp -- 0.6.1-1 is newer than 0.6.0_rc7-1 (which it
+	  previously saw as 0.6.07) and 0.6.1 is newer than 0.6.01
+	* trashed version_cmp (still available in git), uses vercmp
+	  (which is provided by pacman...)
+	* changed some if statements to ${var1:-otherwise}
+	* made some variables local 
+	* removed some unnecessary cats
+	* rearranged some conditions to speed up aur_find_updates
 0.4.17:
 	* removed some grep ... &>/dev/null or 2>/dev/null; use -s and -q
 	* allow ~/.config/spinach/config for defaults
