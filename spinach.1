@@ -1,4 +1,4 @@
-.TH spinach 1 "2011-08-04" "Spinach 0.4" "Spinach"
+.TH spinach 1 "2011-08-09" "Spinach 0.4" "Spinach"
 .SH NAME
 spinach \- A small AUR helper written in Bash.
 .SH SYNOPSIS
@@ -41,8 +41,6 @@ Download all the AUR packages that are older than the one in the AUR to the curr
 .SH CONFIG (optional)
 .IP "UseSSL UseRepos UseColor"
 Same as specifying --ssl, --rep, and --col.
-.IP "Color1 Color2 Color3"
-Colors used if UseColor is uncommented.
 .IP "Threads"
 Same as specifying --max number
 .IP "Temp"
@@ -50,16 +48,18 @@ Same as specifying --tmp dir
 .IP "Editor"
 Same as specifying --edit editor, overrides $EDITOR
 .SH NOTES
+.IP "Does Not Ask for Password"
+Newer versions of Spinach are intended to be able to install a bunch of packages easily. First it downloads all the files, then you are prompted to view them, then it installs depends, then it runs 'sudo -v' in the background every few seconds (if you have sudo), and finally compiles the applications. The key part of that sentence is: 'sudo -v' This will keep you from having to type in your password every time an application is compiled (since to compile applications, the depends normally have to be installed). To have this functionality enabled, install sudo. If you you have sudo and don't want it, email me and tell me why. Then I'll add an option to disable it.
 .IP "View Files"
-When you install packages using Spinach, you will be forced to view the PKGBUILD and .install files. This is not supposed to be "annoying." It is for your safety. Read them. They could easily delete your files if you don't.
+When you install packages using Spinach, you will be forced to type "y", return, "n", "y", return "n", etc. if you don't want to view the PKGBUILD and .install files. This is supposed to annoy you. It is for you safety. Read the PKGBUILD and .install files! They could easily delete your files if you don't.
 .IP "Running as Root"
-Never run Spinach as root. It will run makepkg as root which will run the PKGBUILD as root. You don't want that.
+Never run Spinach as root. It will run makepkg as root which will run the PKGBUILD as root. You don't want that. There is nothing stopping you from running at root though. If you don't care about trashing your system, have fun running it as root.
 .IP "No Internet"
 If there is no Internet connection, Spinach probably won't print anything for most operations.
 .IP "Version Control"
 If you have some version-control package (-svn, -git, -hg, etc.) and you want to keep the trunk while updating, upgrade the package manually instead of using the automatic upgrade operation (-u). After installing an application (or upgrading) spinach will remove the files from the spinach/build/ directory.
 .IP "Spinach Cache"
-When you install or upgrade an application, the build directory in your temporary directory is deleted, but the generated package (if it was successfully created) will be copied to $SPINTMPDIR/spinach/cache/<bunch of text>.pkg.tar.xz. You can set the Spinach temp directory either in the config file or with the --tmp option.
+When you install or upgrade an application, the build directory in your temporary directory is deleted, but the generated package (if it was successfully created) will be copied to $Spintmpdir/spinach/cache/<bunch of text>.pkg.tar.xz. You can set the Spinach temp directory either in the config file or with the --tmp option.
 .IP "Config versus Options"
 Options specified (e.g. --ssl) will override whatever is in the config file (e.g. UseSSL).
 .SH EXAMPLES
