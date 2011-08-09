@@ -1,9 +1,21 @@
 POSSIBLE:
-	* line 99: on upgrade check for new depends
 	* --needed ?
-	* view all .install and PKGBUILDs at beginning, compile all, install
-	  all that don't depend on an application that failed to compile
 
+0.4.19:
+	* recoded most of it
+	* changed function and variable names
+	* batch friendly (install: view all at beginning, compile, install)
+	* check for new depends on update
+	* when using sudo, run sudo -v ever blah seconds
+	* noconfirm on install, since you already confirmed it
+	* improved bash
+		* removed excess code to append to an array
+		* removed excess code to send array to function
+		* fixed local variable issues
+		* simplified [[ ]] and (( )) logic
+	* added '--compressed' to curl
+	* made single function for most curl-ness
+	* Probably introduced a bunch of new bugs... ugh
 0.4.18:
 	* changed a few more [[ 1 ]] && [[ 2 ]] to [[ 1 && 2 ]]
 	* fixed version_cmp -- 0.6.1-1 is newer than 0.6.0_rc7-1 (which it

@@ -11,11 +11,6 @@ UseSSL
 UseRepos
 UseColor
 
-##Colors to use 
-Color1=\e[0;31m
-Color2=\e[0;32m
-Color3=\e[0;34m
-
 ##Max number of threads to use
 Threads=10
 

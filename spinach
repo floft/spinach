@@ -1,370 +1,368 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.18"
-unset ssl col col1 col2 nc op rep spintmpdir
-maxthreads=10
-AURURL="http%s://aur.archlinux.org"
-AURPC="$AURURL/rpc.php?type=%s&arg=%s"
+VE="0.4.19"
 
-aur_search() {
-	if [[ -z $2 ]]; then
-		[[ -n $rep ]] && pacman -Ss "$1" | sed -r 's/^([^/\s]+\/[^ ]+) [^\n]+$/\1/g' | \
-				sed -rn '1h;1!H;${;g;s/\n\s+/: /g;p;}' | aur_display_color
-		curl -sA "$UA" "$(printf $AURPC "$ssl" search "$1")" | sed -r '
-		s/.*(No results found).*/\1\n/g
-		s/^\{"type":"error".*/No results found/g
-		s/"Version":"[^"]+"//g
-		s/\\"/\&QUOT;/g
-		s/.*\[([^"]*)\]}}/\1/g
-		s/\{[^}]*"Name":"([^"]*)",[^}]*,"Description":"([^"]*)"[^}]*\}/\1: \2\n/g
-		s/^,//mg
-		s/\\\//\//mg
-		s/\\\\/\\/mg
-		s/\&QUOT;/"/mg
-		s/^]}//mg' | sort | aur_display_color
-	else
-		[[ -n $rep ]] && pacman -Ssq "$1"
-		curl -sA "$UA" "$(printf $AURPC "$ssl" search "$1")" | \
+unset v Op Rep Red Green Yellow Blue Nc
+
+v=0 #set to 1 for verbose messages (msg v cow), of which there currently are none...
+pkgargs=()
+Threads=10
+SudovSleep=5
+Proto="http"
+Host="aur.archlinux.org"
+Pkg="packages/%s/%s.tar.gz"
+Rpc="rpc.php?type=%s&arg=%s"
+
+#
+# Functions for main functionality
+#
+
+spin_search() { #$1 = v or q, verbose or quiet
+	local query="$2"
+
+	if [[ $1 == q ]]; then
+		(($Rep)) && pacman -Ssq "$query"
+		spin_curl r search "$query" | \
 			grep -Eo '"Name":"[^"]*"' | sed -r 's/"Name":"([^"]*)"/\1/g'
+	else
+		(($Rep)) && pacman -Ss "$query" | sed -r 's/^([^/\s]+\/[^ ]+) [^\n]+$/\1/g' | \
+			sed -rn '1h;1!H;${;g;s/\n\s+/: /g;p;}' | display_color
+		spin_curl r search "$query" | sed -r '
+			s/.*(No results found).*/\1\n/g
+			s/^\{"type":"error".*/No results found/g
+			s/"Version":"[^"]+"//g
+			s/\\"/\&QUOT;/g
+			s/.*\[([^"]*)\]}}/\1/g
+			s/\{[^}]*"Name":"([^"]*)",[^}]*,"Description":"([^"]*)"[^}]*\}/\1: \2\n/g
+			s/^,//mg
+			s/\\\//\//mg
+			s/\\\\/\\/mg
+			s/\&QUOT;/"/mg
+			s/^]}//mg' | sort | display_color
 	fi
 }
-aur_info() {
-	local gotinfo info
 
-	if [[ -n $rep ]]; then
-		info="$(pacman -Si "$1" 2>/dev/null)"
+spin_info() {
+	local query info getinfo
+	query="$@"
+
+	if (($Rep)); then
+		info="$(pacman -Si "$query" 2>/dev/null)"
 		gotinfo=$?
-		
-		[[ -n $info ]] && aur_display_color <<< "$info"
+
+		[[ $info ]] && display_color <<< "$info"
 	fi
-	if [[ -z $rep || $gotinfo != 0 ]]; then
-		curl -sA "$UA" "$(printf $AURPC "$ssl" info "$1")" | sed -r '
-		s/.*No result found.*/Error:Package not found/g
-		s/\\"/\&QUOT;/g
-		s/.*results":\{(.*)\}\}/\1/g
-		s/\",\"/\"\n\"/g
-		s/\\\//\//mg
-		s/"//mg
-		s/^([^:]*):/\1: /mg
-		s/\\\\/\\/mg
-		s/\&QUOT;/"/mg
-		s/^URLPath: /URLPath: https:\/\/aur.archlinux.org/mg' | aur_display_color
+
+	if (( ! $Rep || $gotinfo )); then
+		spin_curl r info "$query" | sed -r '
+			s/.*No result found.*/Error:Package not found/g
+			s/\\"/\&QUOT;/g
+			s/.*results":\{(.*)\}\}/\1/g
+			s/\",\"/\"\n\"/g
+			s/\\\//\//mg
+			s/"//mg
+			s/^([^:]*):/\1: /mg
+			s/\\\\/\\/mg
+			s/\&QUOT;/"/mg
+			s/^URLPath: /URLPath: https:\/\/aur.archlinux.org/mg' | display_color
 		echo
 	fi
 }
-aur_install() {
-	blank_editor || return 1
-	#from repos
-	if [[ -n $rep ]]; then
-		if pacman -Si "$1" &>/dev/null || (( $(pacman -Sgq "$1" 2>/dev/null | \
-		wc -l) > 0 )); then
-			pacman_run -S $1
-			return $?
-		fi
-	fi
-	#from AUR
-	aur_create_tmp || return 1
-	cd "$tmp/build"
-	downloaded=""
-	trap "for i in \$downloaded; do rm -rf \"$tmp/build/\$i/\" &>/dev/null;done;
-		echo;exit 1" 2 15
-	aur_download_deps "$1" install
-	trap - 2 15
-}
-aur_update() {
-	local i
 
-	downloaded=""
-	blank_editor || return 1
-	aur_create_tmp || return 1
-	cd "$tmp/build"
-	#get list (outputs to $download)
-	aur_find_updates u
-	#lock
-	[[ -e $tmp/update.lock ]] && aur_message "Error" "update lock exists" && return 1
-	touch "$tmp/update.lock"
-	#clean on kill
-	trap "for i in \$downloaded; do rm -rf \"$tmp/build/\$i/\" &>/dev/null;done;
-		rm \"$tmp/update.lock\";echo;exit 1" 2 15
-	#download and install after confirming
-	IFS=$' '
-	for i in $download; do
-		ask_yes_no "Update ${i}?"
-		if [[ $response == y ]]; then
-			if aur_download "$i" installed; then
-				downloaded="$downloaded $i"
-				if [[ -e $i/PKGBUILD ]]; then
-					cd "$i" && aur_run_install
-				else
-					aur_message "Missing" "$tmp/build/$i/PKGBUILD"
-				fi
-			fi
-			cd "$tmp/build"
-			#cd "$tmp/build && aur_download_deps "$i" install
-		fi
+spin_install() {
+	local i pkg sudov
+	
+	blank_editor	|| return 1
+	create_tmp	|| return 1
+	
+	cd "$Tmp_build"
+
+	Downloaded=()
+	InstallPacman=()
+	InstallExplicit=()
+	InstallDepends=()
+	CompiledExplicit=()
+	trap "clean_downloaded; kill \$sudov &>/dev/null; exit 1" 0
+	trap "clean_downloaded; kill \$sudov &>/dev/null; echo; exit 1" 2 15
+
+	#download
+	for pkg; do
+		spin_download_all e "$pkg"
 	done
-	#clean
-	for i in $downloaded; do
-		rm -rf "$i/" &>/dev/null
+
+	#spin_download_all set it
+	unset IFS
+
+	#preview
+	for pkg in "${InstallExplicit[@]}" "${InstallDepends[@]}"; do
+		cd "$pkg"
+		preview "$pkg"
+		cd "$Tmp_build"
 	done
-	rm "$tmp/update.lock"
-	trap - 2 15
-}
-aur_download() {
-	local saved inst
+	
+	#install pacman depends
+	(( ${#InstallPacman[@]} > 0 )) && \
+		run_pacman --needed --asdeps -S "${InstallPacman[@]}"
 
-	if [[ -e $1 ]]; then
-		aur_message "Exists" "$(pwd)/$1"
-		return 1
-	else
-		url="$(curl -sfA "$UA" "$(printf $AURPC "$ssl" info "$1")" | sed -r '
-			s/.*No result found.*//g
-			s/.*URLPath":"([^"]+)".*/\1/g
-			s/\\\//\//g')"
-    		if [[ -n $url ]]; then
-			curl -sfA "$UA" "$(printf "$AURURL$url" "$ssl")" -o "$1.tar.gz"
-			tar xzf "$1.tar.gz" &>/dev/null
-			#saved or not saved
-			(( $? > 0 )) && saved="Not "
-			#print whether it is installed
-			[[ -z $2 ]] && pacman -T $1 &>/dev/null && \
-				inst=" ${col2}(installed)${nc}"
-			printf "${col}%s${nc}: %s$inst\n" "${saved}Saved" "$1/"
-			rm "$1.tar.gz" &>/dev/null || return 1
-		else
-			aur_message "Not Found" "$1"
-			return 1
-		fi
+	#keep password cached while installing
+	if type sudo &>/dev/null; then
+		msg c "Running" "sudo -v"
+		sudo -v || { msg e "Could not authenticate."; exit 1; }
+		sudov &
+		sudov=$!
 	fi
-}
-aur_download_deps() { # $1=package; $2=whether to install; $3=install with --asdeps
-	local i depends provides dir
 
-	aur_download "$1" "$2" && downloaded="$downloaded $1" || return 1
-	#get PKGBUILD depends
-	if [[ -e $1/PKGBUILD ]]; then
-		depends="$(tr '\n' ' ' < "$1/PKGBUILD" | \
-			grep -Eos " (make)?depends=\([^)]*\)" | sed -r "
-			s/.*\((.*)\).*/\1/mg
-			s/(['\"])([^><=']*)[><=]+[^'\"]*\1/\2/mg
-			s/['\"]//mg" | tr '\n' ' ' | sed -r "s/\\\$[^ ]+ //mg")"
-	else
-		aur_message "Missing" "$(pwd)/$1/PKGBUILD"
-		return 1
-	fi
-	#non-installed depends (only skip when installing)
-	[[ -n $2 ]] && depends=$(pacman -T $depends)
-	#find if depends are in pacman repos
-	provides="$(pacman -Si $(pacman -Ssq "($(tr ' ' '|' <<< "$depends"|tr '\n' '|'))"||echo -h) | \
-		grep -E "^(Name|Provides)" | sed -r '
-		s/^[^:]*: //mg
-		s/=[^ ]*//mg' | tr ' ' '\n')"
-	#download if in the AUR
-	for i in $depends; do
-		if ! grep -q "^$i$" <<< "$provides" && [[ ! -e $i/ ]]; then
-			aur_download_deps "$i" "$2" "asdep"
-		fi
+	#build Install{Depends,Explicit}
+	build_all
+
+	kill $sudov &>/dev/null
+	clean_downloaded
+	trap - 0 2 15
+}
+
+spin_update() {
+	local i pkg sudov toUpdate
+	
+	blank_editor	|| return 1
+	create_tmp	|| return 1
+	
+	cd "$Tmp_build"
+
+	#Outputs array to $Updates
+	spin_find_updates
+
+	toUpdate=()
+	Downloaded=()
+	InstallPacman=()
+	InstallDepends=()
+	InstallExplicit=()
+	CompiledExplicit=()
+	[[ -e $Tmp/update.lock ]] && msg e "update lock exists" && return 1
+	touch "$Tmp/update.lock"
+
+	trap "clean_downloaded; rm \"$Tmp/update.lock\" &>/dev/null; kill \$sudov &>/dev/null; exit 1" 0
+	trap "clean_downloaded; rm \"$Tmp/update.lock\" &>/dev/null; kill \$sudov &>/dev/null; echo; exit 1" 2 15
+
+	#find out what to update
+	for pkg in "${Updates[@]}"; do
+		yes_no "Update $pkg?"
+		[[ $Response == y ]] && toUpdate+=("$pkg")
 	done
-	#install
-	if [[ $2 == install ]]; then
-		if [[ -e $1/PKGBUILD ]]; then
-			dir="$(pwd)"
-			cd "$1"
-			aur_run_install "$3"
-			cd "$dir"
-		else
-			aur_message "Missing" "$(pwd)/$1/PKGBUILD"
-			rm -rf "$1/" &>/dev/null
-		fi
-	fi
-}
-aur_find_updates() {
-	local i p ignore aur_versions curl_kill_list threads number urls inaur inlocal name up in
+	
+	#don't ask for password to do nothing
+	(( ${#toUpdate[@]} == 0 )) && exit 0
 
-	aur_create_tmp || return 1
-	download=""
-	p="$(pacman -Qmq 2>/dev/null)" #packages
+	#only download what user wanted to update
+	for pkg in "${toUpdate[@]}"; do
+		spin_download_all e "$pkg"
+	done
+	
+	#spin_download_all set it
+	unset IFS
+
+	#preview
+	for pkg in "${InstallExplicit[@]}" "${InstallDepends[@]}"; do
+		cd "$pkg"
+		preview "$pkg"
+		cd "$Tmp_build"
+	done
+	
+	#install pacman depends
+	(( ${#InstallPacman[@]} > 0 )) && \
+		run_pacman --needed --asdeps -S "${InstallPacman[@]}"
+
+	#keep password cached while installing
+	if type sudo &>/dev/null; then
+		msg c "Running" "sudo -v"
+		sudo -v || { msg e "Could not authenticate."; exit 1; }
+		sudov &
+		sudov=$!
+	fi
+
+	#build Install{Depends,Explicit}
+	build_all
+
+	rm "$Tmp/update.lock"
+	kill $sudov &>/dev/null
+	clean_downloaded
+	trap - 0 2 15
+}
+
+spin_find_updates() { #prints to stdout, outputs array to $Updates
+	local pkg packages ignore kill_list number urls inaur inlocal name up in
+
+	create_tmp || return 1
+
+	Updates=()
+	packages="$(pacman -Qmq 2>/dev/null)"
+
 	#remove ignored
 	ignore="$(grep ^IgnorePkg /etc/pacman.conf | sed -e "s/.*=\ //g")"
-	for i in $ignore; do
-		p="$(grep -v "$i" <<< "$p")"
+	for pkg in $ignore; do
+		packages="$(grep -v "$pkg" <<< "$packages")"
 	done
+
 	#get versions from aur with multiple threads
-	aur_versions="$tmp/findupdates_$$"
-	curl_kill_list=""
-	touch "$aur_versions"
-	trap "kill \$curl_kill_list &>/dev/null; rm \"$aur_versions\"; exit 1" 2 15
+	aur_versions="$Tmp/findupdates_$$"
+	kill_list=()
 	threads=()
+	touch "$aur_versions"
+	trap "kill \"\${kill_list[@]}\" &>/dev/null; rm \"$aur_versions\" &>/dev/null; exit 1" 0 2 15
 	number=0
-	for i in $p; do #split urls for diff threads
-		threads[$number]="$(printf "$AURPC" "$ssl" info "$i") ${threads[$number]}"
-		[[ $number == $maxthreads ]] && number=0 || number=$(($number+1))
+	
+	#split urls for diff threads
+	for pkg in $packages; do
+		threads[$number]+="$(printf "%s://%s/$Rpc" "$Proto" "$Host" info "$pkg") "
+		(( number == Threads )) && number=0 || ((number++))
 	done
-	for i in ${!threads[@]}; do #create threads
-		urls="${threads[$i]}"
-		curl -sA "$UA" -m 5 --retry-delay 1 --retry 4 $urls >> "$aur_versions" &
-		curl_kill_list="$! $curl_kill_list"
+
+	#create threads
+	for urls in "${threads[@]}"; do
+		curl -sfA "$UA" -m 5 --compressed --retry-delay 1 --retry 4 $urls >> "$aur_versions" &
+		kill_list+=("$!")
 	done
-	while (( $(jobs|wc -l) > 0 )); do #wait for threads
+
+	#wait for threads
+	while (( $(jobs|wc -l) > 0 )); do
 		sleep 0.05
 		jobs &>/dev/null
 	done
+
 	inaur="$(sed -re '
 		s/\{[^}]*"results":"No result found"\}//g
 		s/\{+[^}]*Name":"([^"]*)"[^}]*Version":"([^"]*)[^}]*\}+/\1\t\2\n/g' < "$aur_versions" | \
 		sort)"
-	trap - 2 15
+	trap - 0 2 15
 	rm "$aur_versions"
+
 	#get installed versions
-	inlocal="$(pacman -Qi $p | grep -E '^(Name|Version)' | tr '\n' ' ' | \
+	inlocal="$(pacman -Qi $packages | grep -E '^(Name|Version)' | tr '\n' ' ' | \
 		sed -r 's/(Name|Version)\s+: /\n/g' | tail -n +2 | sed 's/ $//g')"
+
 	#find differences
 	IFS=$'\n'
-	for i in $inaur; do
-		name="$(cut -f1 <<< "$i")"
+	for pkg in $inaur; do
+		name="$(cut -f1 <<< "$pkg")"
 		#up-to-date version
-		up="$(cut -f2 <<< "$i")"
+		up="$(cut -f2 <<< "$pkg")"
 		#installed version
 		in="$(grep -A 1 "^$name$" <<< "$inlocal" | tail -n 1)"
-		
-		if [[ $up != $in && -n $up && -n $in && -z $(grep "No result found"<<<"$up") ]] \
-		&& [[ $(vercmp "$in" "$up") == -1 ]]; then
-			[[ -n $1 ]] && download="$download $name"
-			printf "${col}%s${nc} (${col3}%s${nc} => ${col2}%s${nc})\n" \
-				"$name" "$in" "$up"
+
+		if [[ $up != $in && -n $up && -n $in && -z $(grep "No result found" <<< "$up") ]] \
+			&& [[ $(vercmp "$in" "$up") == -1 ]]; then
+			Updates+=("$name")
+			printf "${Red}%s${Nc} (${Blue}%s${Nc} => ${Green}%s${Nc})\n" "$name" "$in" "$up"
 		fi
 	done
 }
-aur_download_updates() {
-	local i
 
-	aur_find_updates u #outputs to $download
-	IFS=$' '
-	for i in $download; do
-		aur_download "$i"
+spin_download_updates() {
+	local pkg inst files
+
+	#Outputs array to $Updates
+	spin_find_updates
+
+	#download
+	for pkg in "${Updates[@]}"; do
+		spin_download_all e "$pkg" print
 	done
 }
-#sub-functions
-aur_run_install() {
-	local inst response asdep
 
-	pwd="$(pwd)"
-	$EDITOR PKGBUILD
-	inst="$(grep ^install= PKGBUILD | cut -d= -f2 | tr -d "'\"")"
-	[[ -e $inst ]] && $EDITOR "$inst"
-	#install
-	ask_yes_no "Install?"
-	if [[ $response == y ]]; then
-		makepkg -sc
-		#install
-		[[ -n $1 ]] && asdep="--asdeps"
-		#ask if the user wants try again on fail
-		while true; do
-			if ! pacman_run $asdep '-U *.pkg.tar.xz'; then
-				ask_yes_no "Try again?"
-				[[ $response == n ]] && break
+spin_download_all() { #$1 = e or d, explicit or depend; $2 = pkg
+	local typ pkg dep depends provides
+	typ="$1"
+	pkg="$2"
+
+	if [[ ! -e $pkg ]]; then
+		if spin_download "$pkg"; then
+			Downloaded+=("$pkg")
+
+			case "$typ" in
+				d) InstallDepends+=("$pkg");;
+				e) InstallExplicit+=("$pkg");;
+				*) return 1;;
+			esac
+
+			msg c "Saved" "$pkg"
+
+			if [[ -e $pkg/PKGBUILD ]]; then
+				depends="$(tr '\n' ' ' < "$pkg/PKGBUILD" | \
+					grep -Eos " (make)?depends=\([^)]*\)" | sed -r "
+					s/.*\((.*)\).*/\1/mg
+					s/(['\"])([^><=']*)[><=]+[^'\"]*\1/\2/mg
+					s/['\"]//mg" | tr '\n' ' ' | sed -r "s/\\\$[^ ]+ //mg")"
+				depends=$(pacman -T $depends)
+
+				provides="$(pacman -Si $(pacman -Ssq "($(tr ' ' '|' <<< "$depends"|tr '\n' '|'))"||echo -h) | \
+					grep -E "^(Name|Provides)" | sed -r '
+					s/^[^:]*: //mg
+					s/=[^ ]*//mg' | tr ' ' '\n')"
+
+				IFS=$' '
+				for dep in $depends; do
+					unset IFS
+					if ! grep -q "^$dep$" <<< "$provides"; then
+						[[ ! -e $dep/ ]] && spin_download_all d "$dep"
+					else
+						InstallPacman+=("$dep")
+					fi
+					IFS=$' '
+				done
+				unset IFS
 			else
-				break
+				msg w "$pkg/PKGBUILD not found"
 			fi
-		done
-		#copy to cache
-		mv ./*.pkg.tar.xz "../../cache" &>/dev/null
-	fi
-	#clean
-	cd ../
-	rm -rf "$pwd/" &>/dev/null
-}
-aur_create_tmp() {
-	[[ -z $spintmpdir ]] && spintmpdir=${TMPDIR:-/tmp}
-
-	tmp="$spintmpdir/spinach"
-	if ! mkdir -p "$tmp" "$tmp/cache" "$tmp/build" &>/dev/null; then
-		aur_message "Error" "could not create $tmp"
-		return 1
-	fi
-}
-aur_display_color() {
-	[[ -n $col ]] && cat | sed -r 's/^([^: \t]+[^:]*): +/\'$col'\1\'$nc': /g' | \
-		xargs -0 echo -en || cat
-}
-aur_message() {
-	local message rest
-
-	message="$1";shift;rest="$@"
-	printf "${col}%s${nc}: %s\n" "$message" "$rest"
-}
-ask_yes_no() {
-	local resp
-
-	while true; do
-		printf "${col}y/n${nc}: %s " "$1"
-		read resp
-		
-		if [[ $resp == y || $resp == n ]]; then
-			response="$resp"
-			return 0
+		else
+			msg e "could not download $pkg. Exiting." && exit 1
 		fi
-	done
-}
-pacman_run() {
-	local pacret
-
-	shopt -s nullglob
-	if type sudo &>/dev/null; then
-		aur_message "Running" "sudo pacman "$@
-		sudo pacman $@
-		pacret=$?
-	else
-		aur_message "Running" "su root -c pacman "$@
-		su root -c "pacman $@"
-		pacret=$?
 	fi
-	shopt -u nullglob
+}
+
+spin_download() { #$1 = package; $2 = print (optional)
+	local package url result
+
+	package="$1"
+	url="$PROTO://$AUR/packages/$package/$package.tar.gz"
+	create_tmp	|| return 1
 	
-	return $pacret
-}
-blank_editor() {
-	local i
+	[[ -e $Tmp_build/$package ]] && msg e "already downloaded" && return 1
+	[[ $2 == print && -e $package ]] && msg e "$package/ exists in this directory" && return 1
 
-	if [[ -z $EDITOR ]]; then
-		for i in vim emacs vi nano most less more cat; do
-			if type $i &>/dev/null; then
-				EDITOR="$i"
-				aur_message "Note" "No \$EDITOR, using '$i'"
-				break
-			fi
-		done
+	spin_curl p "$package" "$package.tar.gz"
+	tar xzf "$package.tar.gz" &>/dev/null
+	result=$?
+	rm "$package.tar.gz" &>/dev/null
 
-		[[ -z $EDITOR ]] && aur_message "Error" "set \$EDITOR" && return 1
+	if [[ $2 == print ]]; then
+		(( $result == 0 )) && \
+			msg c "Saved" "$package/" || \
+			msg c "Not Saved" "$package/"
+	else
+		return $result
 	fi
 }
-blank_arg() {
-	[[ -z $1 ]] && aur_message "Error" "Please specify at least one package." && exit 1
-}
-chkop() {
-	[[ -n $op ]] && aur_message "Error" "You can only specify one operation."&& exit 1
-}
-aur_help() {
+
+spin_help() {
 	cat <<EOF
 Usage: spinach [options] [operation] [packages]
 
   Options
-    --ssl	Use SSL
-    --col	Use Color
-    --rep	Use repositories
-    --max  10	Set max threads
-    --tmp  dir	Set temp directory
-    --edit vim	Set editor
+    --[no]ssl	Use SSL
+    --[no]col	Use Color
+    --[no]rep	Also use repositories
+    --max 10	Set max threads
+    --tmp dir	Set temp directory
+    --edit vim	Set \$EDITOR
 
   Common Operations
-    -s	pkg	Search (-sq for quiet)
-    -p	pkg	Print info
-    -i	pkg	Install
+    -s[q] pkg	Search
+    -p pkg	Print info
+    -i pkg	Install
     -u		Update all
 
   Do-it-yourself Operations
-    -d	pkg	Download
-    -dd	pkg	Download with depends
+    -d pkg	Download
+    -dd pkg	Download with depends
     -o		List out-of-date
     -do		Download out-of-date
 
@@ -372,82 +370,300 @@ Try \`man spinach' for more information.
 EOF
 }
 
+#
+# "behind the scenes" functions
+#
+
+build_all() {
+	local i pkg files
+
+	#build (in reverse)
+	for (( i=${#InstallDepends[@]}-1; i >= 0; i-- )); do
+		pkg="${InstallDepends[$i]}"
+		cd "$pkg"
+		
+		#build, correct, build, etc.
+		build_continue "$pkg"
+		
+		#install files later
+		shopt -s nullglob dotglob
+		files=("$Tmp_build/$pkg"/*.pkg.tar.xz)
+		shopt -u nullglob dotglob
+		
+		#install
+		(( ${#files[@]} > 0 )) && \
+			run_pacman --noconfirm --asdeps -U "${files[@]}"
+
+		#cache
+		for pkg in "${files[@]}"; do
+			 mv "$pkg" "$Tmp_cache/"
+		done
+
+		cd "$Tmp_build"
+	done
+	
+	for (( i=${#InstallExplicit[@]}-1; i >= 0; i-- )); do
+		pkg="${InstallExplicit[$i]}"
+		cd "$pkg"
+		
+		#build, correct, build, etc.
+		build_continue "$pkg"
+		
+		#install files later
+		shopt -s nullglob dotglob
+		CompiledExplicit+=("$Tmp_build/$pkg"/*.pkg.tar.xz)
+		shopt -u nullglob dotglob
+
+		cd "$Tmp_build"
+	done
+
+	#install
+	(( ${#CompiledExplicit[@]} > 0 )) && \
+		run_pacman --noconfirm -U "${CompiledExplicit[@]}" || \
+		msg n "That's weird... nothing to install."
+
+	#move to cache
+	for pkg in "${CompiledExplicit[@]}"; do 
+		mv "$pkg" "$Tmp_cache/"
+	done
+}
+
+build_continue() {
+	local pkg inst
+	pkg="$1"
+
+	while true; do
+		if makepkg -c; then
+			break
+		else
+			yes_no "Correct files for $pkg?"
+
+			if [[ $Response == y ]]; then
+				$EDITOR "PKGBUILD"
+
+				inst="$(grep ^install= "PKGBUILD" | cut -d= -f2 | tr -d "'\"")"
+				[[ -e $inst ]] && $EDITOR "$inst"
+			else
+				msg e "error building $pkg. Exiting."
+				exit 1
+			fi
+		fi
+	done
+}
+
+spin_curl() {
+	local t f s o
+
+	case "$1" in
+		p) t="$Pkg"; f="$2"; s="$2"; o="$3";;
+		r) t="$Rpc"; f="$2"; s="$3"; o="-";;
+		*) return 1;;
+	esac
+
+	curl -sfA "$UA" --compressed "$(printf "%s://%s/$t" "$Proto" "$Host" "$f" "$s")" -o "$o"
+}
+
+clean_downloaded() {
+	local file
+
+	for file in "${Downloaded[@]}"; do
+		[[ -e $Tmp_build/$file ]] && rm -rf "$Tmp_build/$file" &>/dev/null
+	done
+}
+
+msg() {
+	local t msg
+	msg="$2"
+
+	case "$1" in
+		e) t="Error";;
+		w) t="Warning";;
+		n) t="Notice";;
+		v) t="Verbose";;
+		c) t="$2"; msg="$3";;
+		*) return 1;;
+	esac
+
+	if [[ $1 == v ]]; then
+		((v)) && printf "${Red}%s${Nc}: %s\n" "$t" "$msg"
+	else
+		printf "${Red}%s${Nc}: %s\n" "$t" "$msg"
+	fi
+}
+
+run_pacman() {
+	while true; do
+		if type sudo &>/dev/null; then
+			msg c "Running" "sudo pacman $*"
+			sudo pacman "$@"
+		else
+			msg c "Running" "su root -c pacman $*"
+			su root -c pacman "$@"
+		fi
+
+		(( $? == 0 )) && break
+		
+		yes_no "Try again?"
+		[[ $Response == n ]] && break
+	done
+}
+
+preview() {
+	local inst pkg
+	pkg="$1"
+
+	yes_no "View $pkg?"
+	if [[ $Response == y ]]; then
+		$EDITOR "PKGBUILD"
+
+		inst="$(grep ^install= "PKGBUILD" | cut -d= -f2 | tr -d "'\"")"
+		[[ -e $inst ]] && $EDITOR "$inst"
+	fi
+
+	yes_no "Install $pkg?"
+	[[ $Response != y ]] && msg e "Not installing. Exiting." && exit 1
+}
+
+yes_no() {
+	local resp
+
+	while true; do
+		printf "${Red}y/n${Nc}: %s " "$1"
+		read resp
+
+		if [[ $resp == y || $resp == n ]]; then
+			Response="$resp"
+			return 0
+		fi
+	done
+}
+
+blank_editor() {
+	local i
+
+	if [[ -z $EDITOR ]]; then
+		for i in vim emacs vi nano most less more cat; do
+			if type $i &>/dev/null; then
+				EDITOR="$i"
+				msg n "No \$EDITOR, using '$i'"
+				break
+			fi
+		done
+
+		[[ -z $EDITOR ]] && msg e "set \$EDITOR" && return 1
+	fi
+}
+
+display_color() {
+	[[ $Red ]] && cat | sed -r 's/^([^: \t]+[^:]*): +/\'$Red'\1\'$Nc': /g' | \
+		xargs -0 echo -en || cat
+}
+
+create_tmp() {
+	[[ -z $Spintmpdir ]] && Spintmpdir=${TMPDIR:-/tmp}
+
+	Tmp="$Spintmpdir/spinach"
+	Tmp_build="$Tmp/build"
+	Tmp_cache="$Tmp/cache"
+	if ! mkdir -p "$Tmp" "$Tmp_build" "$Tmp_cache" &>/dev/null; then
+		msg e "could not create $Tmp"
+		return 1
+	fi
+}
+
+set_color() {
+	Red=$(tput setaf 1)
+	Green=$(tput setaf 2)
+	Yellow=$(tput setaf 3)
+	Blue=$(tput setaf 4)
+	Nc=$(tput sgr0)
+}
+
+unset_color() {
+	unset Red Green Yellow Blue Nc
+}
+
+blank_arg() {
+	[[ -z $1 ]] && msg e "Please specify at least one package." && exit 1
+}
+
+chkop() {
+	[[ -n $Op ]] && msg e "You can only specify one operation."&& exit 1
+}
+
+sudov() {
+	while true; do
+		sudo -n -v &>/dev/null
+		sleep $SudovSleep
+	done
+}
+
 #defaults from config
 config=${XDG_CONFIG_HOME:-$HOME/.config}/spinach/config
 
-#don't source; what if I accidenty put a 'rm cows.txt' in there =)
 if [[ -e $config ]]; then
-	grep -q '^UseSSL' "$config" && ssl="s"
-	grep -q '^UseRepos' "$config" && rep="y"
+	grep -q '^UseSSL' "$config" && Proto="https"
+	grep -q '^UseRepos' "$config" && Rep=1
+	grep -q '^UseColor' "$config" && set_color
 	grep -q '^Threads=' "$config" && \
-		maxthreads="$(grep -s '^Threads=' "$config" | cut -d= -f2)"
+		Threads="$(grep -s '^Threads=' "$config" | cut -d= -f2)"
 	grep -q '^Temp=' "$config" && \
-		spintmpdir="$(grep -s '^Temp=' "$config" | cut -d= -f2)"
+		Spintmpdir="$(grep -s '^Temp=' "$config" | cut -d= -f2)"
 	grep -q '^Editor=' "$config" && \
 		EDITOR="$(grep -s '^Editor=' "$config" | cut -d= -f2)"
-
-	if grep -q '^UseColor' "$config"; then
-		col="$(grep -s '^Color1=' "$config" | cut -d= -f2)"
-		col2="$(grep -s '^Color2=' "$config" | cut -d= -f2)"
-		col3="$(grep -s '^Color3=' "$config" | cut -d= -f2)"
-		nc='\e[0m'
-	fi
 fi
-
-pkgnum=0
-pkgargs=()
 
 while [[ -n $1 ]]; do
 	case "$1" in
 		#options
-		"--ssl") ssl="s";;
-		"--rep") rep="y";;
-		"--col") col='\e[0;31m'; col2='\e[0;32m'; col3='\e[0;34m'; nc='\e[0m';;
-		"--nossl") unset ssl;;
-		"--norep") unset rep;;
-		"--nocol") unset col col2 col3 nc;;
-		"--max") shift; blank_arg "$1"; maxthreads="$1";;
-		"--tmp") shift; blank_arg "$1"; spintmpdir="$1";;
+		"--ssl") Proto="https";;
+		"--rep") Rep=1;;
+		"--col") set_color;;
+		"--nossl") Proto="http";;
+		"--norep") unset Rep;;
+		"--nocol") unset_color;;
+		"--max") shift; blank_arg "$1"; Threads="$1";;
+		"--tmp") shift; blank_arg "$1"; Spintmpdir="$1";;
 		"--edit") shift; blank_arg "$1"; EDITOR="$1";;
 		#common
-		"-s") chkop; op="s";;
-		"-sq") chkop; op="sq";;
-		"-i") chkop; op="i";;
-		"-p") chkop; op="p";;
-		"-u") chkop; op="u";;
+		"-s") chkop; Op="s";;
+		"-sq") chkop; Op="sq";;
+		"-i") chkop; Op="i";;
+		"-p") chkop; Op="p";;
+		"-u") chkop; Op="u";;
 		#diy
-		"-d") chkop; op="d";;
-		"-dd") chkop; op="dd";;
-		"-o") chkop; op="o";;
-		"-do") chkop; op="do";;
+		"-o") chkop; Op="o";;
+		"-d") chkop; Op="d";;
+		"-dd") chkop; Op="dd";;
+		"-do") chkop; Op="do";;
 		#other
-		"--version") echo "$UA/$VE"; exit 0;; 
-		"-h"|"--help") aur_help; exit 0;;
+		"--version") echo "$UA/$VE"; exit 0;;
+		"-h"|"--help") spin_help; exit 0;;
 		#packages
-		*) pkgargs[$pkgnum]="$1"; pkgnum=$(($pkgnum+1));;
+		*) pkgargs+=("$1");;
 	esac
 	shift
 done
 
-if [[ -n $op ]]; then
-	#no packages
-	case "$op" in
-		u) aur_update; exit 0;;
-		o) aur_find_updates; exit 0;;
-		do) aur_download_updates; exit 0;;
+if [[ $Op ]]; then
+	#disable color if piped to another command
+	[[ ! -t 1 ]] && unset_color
+
+	case "$Op" in
+		u)  spin_update;			exit 0;;
+		o)  spin_find_updates;			exit 0;;
+		do) spin_download_updates;		exit 0;;
+		i)  spin_install "${pkgargs[@]}";	exit 0;;
 	esac
 
-	#requires packages
 	if (( ${#pkgargs[@]} > 0 )); then
-		for arg in ${!pkgargs[@]}; do
-			pkgarg="${pkgargs[$arg]}"
-			case "$op" in
-				s) aur_search "$pkgarg";;
-				sq) aur_search "$pkgarg" quiet;;
-				i) aur_install "$pkgarg";;
-				p) aur_info "$pkgarg";;
-				d) aur_download "$pkgarg";;
-				dd) aur_download_deps "$pkgarg";;
+		for pkg in "${pkgargs[@]}"; do
+			case "$Op" in
+				s)  spin_search v 	"$pkg";;
+				sq) spin_search q 	"$pkg";;
+				p)  spin_info     	"$pkg";;
+				d)  spin_download	"$pkg" print;;
+				dd) spin_download_all e "$pkg";;
 			esac
 		done
 	else

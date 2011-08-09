@@ -1,0 +1,1 @@
+{"type":"info","results":{"ID":"46993","Name":"spinach","Version":"0.4.18-1","CategoryID":"16","Description":"A small AUR helper written in Bash.","URL":"http:\/\/floft.net\/wiki\/Scripts\/Spinach","URLPath":"\/packages\/spinach\/spinach.tar.gz","License":"GPL","NumVotes":"0","OutOfDate":"0"}}
