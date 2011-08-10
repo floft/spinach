@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.19"
+VE="0.4.20"
 
 unset v Op Rep Red Green Yellow Blue Nc
 
@@ -87,7 +87,12 @@ spin_install() {
 
 	#download
 	for pkg; do
-		spin_download_all e "$pkg"
+		if (($Rep)) && { pacman -Si "$pkg" &>/dev/null || \
+			[[ $(pacman -Sgq "$pkg" 2>/dev/null | wc -l) != 0 ]]; }; then
+			run_pacman -S $1
+		else
+			spin_download_all e "$pkg"
+		fi
 	done
 
 	#spin_download_all set it

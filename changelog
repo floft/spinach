@@ -1,6 +1,8 @@
 POSSIBLE:
 	* --needed ?
 
+0.4.20:
+	* allow installing packages from repos (again... accidently deleted it)
 0.4.19:
 	* recoded most of it
 	* changed function and variable names
