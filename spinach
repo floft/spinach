@@ -428,7 +428,7 @@ build_all() {
 	#install
 	(( ${#CompiledExplicit[@]} > 0 )) && \
 		run_pacman --noconfirm -U "${CompiledExplicit[@]}" || \
-		{ (( Fromrepo == 0 )) && msg n "That's weird... nothing to install."; }}
+		{ (( Fromrepo == 0 )) && msg n "That's weird... nothing to install."; }
 
 	#move to cache
 	for pkg in "${CompiledExplicit[@]}"; do 
