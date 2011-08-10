@@ -1,6 +1,9 @@
 POSSIBLE:
 	* --needed ?
 
+0.4.21:
+	* don't print notice when installed from repos ("weird... nothing to
+	  intstall")
 0.4.20:
 	* allow installing packages from repos (again... accidently deleted it)
 0.4.19:

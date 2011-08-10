@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.20"
+VE="0.4.21"
 
 unset v Op Rep Red Green Yellow Blue Nc
 
@@ -77,6 +77,7 @@ spin_install() {
 	
 	cd "$Tmp_build"
 
+	Fromrepo=0
 	Downloaded=()
 	InstallPacman=()
 	InstallExplicit=()
@@ -90,6 +91,7 @@ spin_install() {
 		if (($Rep)) && { pacman -Si "$pkg" &>/dev/null || \
 			[[ $(pacman -Sgq "$pkg" 2>/dev/null | wc -l) != 0 ]]; }; then
 			run_pacman -S $1
+			((Fromrepo++))
 		else
 			spin_download_all e "$pkg"
 		fi
@@ -137,6 +139,7 @@ spin_update() {
 	spin_find_updates
 
 	toUpdate=()
+	Fromrepo=0
 	Downloaded=()
 	InstallPacman=()
 	InstallDepends=()
@@ -425,7 +428,7 @@ build_all() {
 	#install
 	(( ${#CompiledExplicit[@]} > 0 )) && \
 		run_pacman --noconfirm -U "${CompiledExplicit[@]}" || \
-		msg n "That's weird... nothing to install."
+		{ (( Fromrepo == 0 )) && msg n "That's weird... nothing to install."; }}
 
 	#move to cache
 	for pkg in "${CompiledExplicit[@]}"; do 
