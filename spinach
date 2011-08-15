@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.21"
+VE="0.4.22"
 
 unset v Op Rep Red Green Yellow Blue Nc
 
@@ -301,7 +301,7 @@ spin_download_all() { #$1 = e or d, explicit or depend; $2 = pkg
 					grep -Eos " (make)?depends=\([^)]*\)" | sed -r "
 					s/.*\((.*)\).*/\1/mg
 					s/(['\"])([^><=']*)[><=]+[^'\"]*\1/\2/mg
-					s/['\"]//mg" | tr '\n' ' ' | sed -r "s/\\\$[^ ]+ //mg")"
+					s/['\"]//mg" | tr '\n' ' ' | tr '\t' ' ' | sed -r "s/\\\$[^ ]+ //mg")"
 				depends=$(pacman -T $depends)
 
 				provides="$(pacman -Si $(pacman -Ssq "($(tr ' ' '|' <<< "$depends"|tr '\n' '|'))"||echo -h) | \

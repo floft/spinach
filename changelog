@@ -1,6 +1,8 @@
 POSSIBLE:
 	* --needed ?
 
+0.4.22:
+	* fixed "could not download" when depends had tabs in them
 0.4.21:
 	* don't print notice when installed from repos ("weird... nothing to
 	  intstall")
