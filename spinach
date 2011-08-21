@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.22"
+VE="0.4.23"
 
 unset v Op Rep Red Green Yellow Blue Nc
 
@@ -70,7 +70,7 @@ spin_info() {
 }
 
 spin_install() {
-	local i pkg sudov
+	local i pkg
 	
 	blank_editor	|| return 1
 	create_tmp	|| return 1
@@ -83,8 +83,8 @@ spin_install() {
 	InstallExplicit=()
 	InstallDepends=()
 	CompiledExplicit=()
-	trap "clean_downloaded; kill \$sudov &>/dev/null; exit 1" 0
-	trap "clean_downloaded; kill \$sudov &>/dev/null; echo; exit 1" 2 15
+	trap "clean_downloaded; kill \$Sudov &>/dev/null; exit 1" 0
+	trap "clean_downloaded; kill \$Sudov &>/dev/null; echo; exit 1" 2 15
 
 	#download
 	for pkg; do
@@ -119,19 +119,19 @@ spin_install() {
 		msg c "Running" "sudo -v"
 		sudo -v || { msg e "Could not authenticate."; exit 1; }
 		sudov &
-		sudov=$!
+		Sudov=$!
 	fi
 
 	#build Install{Depends,Explicit}
 	build_all
 
-	kill $sudov &>/dev/null
+	kill $Sudov &>/dev/null
 	clean_downloaded
 	trap - 0 2 15
 }
 
 spin_update() {
-	local i pkg sudov toUpdate
+	local i pkg toUpdate
 	
 	blank_editor	|| return 1
 	create_tmp	|| return 1
@@ -151,8 +151,8 @@ spin_update() {
 	[[ -e $Tmp/update.lock ]] && msg e "update lock exists" && return 1
 	touch "$Tmp/update.lock"
 
-	trap "clean_downloaded; rm \"$Tmp/update.lock\" &>/dev/null; kill \$sudov &>/dev/null; exit 1" 0
-	trap "clean_downloaded; rm \"$Tmp/update.lock\" &>/dev/null; kill \$sudov &>/dev/null; echo; exit 1" 2 15
+	trap "clean_downloaded; rm \"$Tmp/update.lock\" &>/dev/null; kill \$Sudov &>/dev/null; exit 1" 0
+	trap "clean_downloaded; rm \"$Tmp/update.lock\" &>/dev/null; kill \$Sudov &>/dev/null; echo; exit 1" 2 15
 
 	#find out what to update
 	for pkg in "${Updates[@]}"; do
@@ -187,14 +187,14 @@ spin_update() {
 		msg c "Running" "sudo -v"
 		sudo -v || { msg e "Could not authenticate."; exit 1; }
 		sudov &
-		sudov=$!
+		Sudov=$!
 	fi
 
 	#build Install{Depends,Explicit}
 	build_all
 
 	rm "$Tmp/update.lock"
-	kill $sudov &>/dev/null
+	kill $Sudov &>/dev/null
 	clean_downloaded
 	trap - 0 2 15
 }
@@ -302,7 +302,7 @@ spin_download_all() { #$1 = e or d, explicit or depend; $2 = pkg
 					s/.*\((.*)\).*/\1/mg
 					s/(['\"])([^><=']*)[><=]+[^'\"]*\1/\2/mg
 					s/['\"]//mg" | tr '\n' ' ' | tr '\t' ' ' | sed -r "s/\\\$[^ ]+ //mg")"
-				depends=$(pacman -T $depends)
+				depends="$(pacman -T $depends | tr '\n' ' ')"
 
 				provides="$(pacman -Si $(pacman -Ssq "($(tr ' ' '|' <<< "$depends"|tr '\n' '|'))"||echo -h) | \
 					grep -E "^(Name|Provides)" | sed -r '

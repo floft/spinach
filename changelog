@@ -1,6 +1,11 @@
 POSSIBLE:
 	* --needed ?
 
+0.4.23:
+	* made sudov a global variable (kill even if in another function it
+	  exits?)
+	* change newlines to spaces when doing `pacman -T' (not doing it
+	  causes the pacman command to fail)
 0.4.22:
 	* fixed "could not download" when depends had tabs in them
 0.4.21:
