@@ -5,6 +5,7 @@
 #
 
 source ./spinach
+source ./version_cmp
 
 #Version comparison
 versions=(
