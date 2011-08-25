@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.23"
+VE="0.4.24"
 
 unset v Op Rep Red Green Yellow Blue Nc
 
@@ -200,7 +200,7 @@ spin_update() {
 }
 
 spin_find_updates() { #prints to stdout, outputs array to $Updates
-	local pkg packages ignore kill_list number urls inaur inlocal name up in
+	local pkg packages ignore kill_list number urls inaur inlocal name up in threadnum
 
 	create_tmp || return 1
 
@@ -217,8 +217,7 @@ spin_find_updates() { #prints to stdout, outputs array to $Updates
 	aur_versions="$Tmp/findupdates_$$"
 	kill_list=()
 	threads=()
-	touch "$aur_versions"
-	trap "kill \"\${kill_list[@]}\" &>/dev/null; rm \"$aur_versions\" &>/dev/null; exit 1" 0 2 15
+	trap "kill \"\${kill_list[@]}\" &>/dev/null; rm \"${aur_versions}\"_* &>/dev/null; exit 1" 0 2 15
 	number=0
 	
 	#split urls for diff threads
@@ -228,9 +227,11 @@ spin_find_updates() { #prints to stdout, outputs array to $Updates
 	done
 
 	#create threads
+	threadnum=0
 	for urls in "${threads[@]}"; do
-		curl -sfA "$UA" -m 5 --compressed --retry-delay 1 --retry 4 $urls >> "$aur_versions" &
+		curl -sfA "$UA" -m 6 --compressed --retry-delay 1 --retry 4 $urls >> "$aur_versions"_$threadnum &
 		kill_list+=("$!")
+		((threadnum++))
 	done
 
 	#wait for threads
@@ -239,12 +240,11 @@ spin_find_updates() { #prints to stdout, outputs array to $Updates
 		jobs &>/dev/null
 	done
 
-	inaur="$(sed -re '
-		s/\{[^}]*"results":"No result found"\}//g
-		s/\{+[^}]*Name":"([^"]*)"[^}]*Version":"([^"]*)[^}]*\}+/\1\t\2\n/g' < "$aur_versions" | \
-		sort)"
+	inaur="$(cat "$aur_versions"_* | sed -re '
+		s/\{[^}]*"results":"No results? found"\}//g
+		s/\{+[^}]*Name":"([^"]*)"[^}]*Version":"([^"]*)[^}]*\}+/\1\t\2\n/g' | sort)"
 	trap - 0 2 15
-	rm "$aur_versions"
+	rm "$aur_versions"_*
 
 	#get installed versions
 	inlocal="$(pacman -Qi $packages | grep -E '^(Name|Version)' | tr '\n' ' ' | \

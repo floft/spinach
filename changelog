@@ -1,6 +1,10 @@
 POSSIBLE:
 	* --needed ?
 
+0.4.24:
+	* fixed problem where all curl results (when finding out if there were
+	  updates) were slopped together; now downloads to separate files and
+	  concatinates them together when needed
 0.4.23:
 	* made sudov a global variable (kill even if in another function it
 	  exits?)
