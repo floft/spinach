@@ -356,7 +356,7 @@ spin_download() { #$1 = package; $2 = print (optional)
 	[[ $2 == print && -e $package ]] && msg e "$package/ exists in this directory" && return 1
 
 	#copy from Custom if available
-	if [[ -n $Custom && -e $Custom/$package ]]; then
+	if [[ -n $Custom && -e $Custom/$package/PKGBUILD ]]; then
 		cp -r "$Custom/$package" ./
 		result=$?
 	else
