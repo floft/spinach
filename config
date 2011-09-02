@@ -19,3 +19,6 @@ Threads=10
 
 ##Prefered editor
 #Editor=vim
+
+##Custom PKGBUILDs
+#Custom=/home/user/PKGBUILDs

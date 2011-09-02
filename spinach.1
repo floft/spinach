@@ -1,4 +1,4 @@
-.TH spinach 1 "2011-08-09" "Spinach 0.4" "Spinach"
+.TH spinach 1 "2011-09-02" "Spinach 0.4" "Spinach"
 .SH NAME
 spinach \- A small AUR helper written in Bash.
 .SH SYNOPSIS
@@ -20,6 +20,8 @@ Specify the text editor to use in order to view the PKGBUILD and .install files 
 If specified the spinach build and cache directories will be stored in spinach/ in this folder. If not specified, it will default to $TMPDIR if specified and as a last resort /tmp.
 .IP "--max"
 If specified this will be the max number of curl instances started to find out-of-date packages. If not specified, it defaults to 10. Note: the number of threads will actually be one more than this number assuming that there are at least that many packages to check.
+.IP "--custom"
+The absolute path to a directory full of custom PKGBUILDs (in sub directories with the package name) to use instead of ones in the AUR. One use of this is to use `spinach --custom ./ -i something' to install your version of something with dependencies from the AUR.
 .SH COMMON OPERATIONS
 .IP "-s"
 Search for the specified package. A very similar option is '-sq' which prints only the package name from the search. This allows you to pipe the results to grep to do regex searching. See the EXAMPLES section. Results from '-s' will be sorted; results from '-sq' will not be.
@@ -47,6 +49,8 @@ Same as specifying --max number
 Same as specifying --tmp dir
 .IP "Editor"
 Same as specifying --edit editor, overrides $EDITOR
+.IP "Custom"
+Same as specifying --custom dir
 .SH NOTES
 .IP "Does Not Ask for Password"
 Newer versions of Spinach are intended to be able to install a bunch of packages easily. First it downloads all the files, then you are prompted to view them, then it installs depends, then it runs 'sudo -v' in the background every few seconds (if you have sudo), and finally compiles the applications. The key part of that sentence is: 'sudo -v' This will keep you from having to type in your password every time an application is compiled (since to compile applications, the depends normally have to be installed). To have this functionality enabled, install sudo. If you you have sudo and don't want it, email me and tell me why. Then I'll add an option to disable it.

@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.24"
+VE="0.4.25"
 
 unset v Op Rep Red Green Yellow Blue Nc
 
@@ -280,7 +280,7 @@ spin_download_updates() {
 }
 
 spin_download_all() { #$1 = e or d, explicit or depend; $2 = pkg
-	local typ pkg dep depends provides
+	local typ pkg dep depends provides completed
 	typ="$1"
 	pkg="$2"
 
@@ -297,34 +297,50 @@ spin_download_all() { #$1 = e or d, explicit or depend; $2 = pkg
 			msg c "Saved" "$pkg"
 
 			if [[ -e $pkg/PKGBUILD ]]; then
-				depends="$(tr '\n' ' ' < "$pkg/PKGBUILD" | \
-					grep -Eos " (make)?depends=\([^)]*\)" | sed -r "
-					s/.*\((.*)\).*/\1/mg
-					s/(['\"])([^><=']*)[><=]+[^'\"]*\1/\2/mg
-					s/['\"]//mg" | tr '\n' ' ' | tr '\t' ' ' | sed -r "s/\\\$[^ ]+ //mg")"
-				depends="$(pacman -T $depends | tr '\n' ' ')"
+				while true; do
+					completed=1
+					depends="$(tr '\n' ' ' < "$pkg/PKGBUILD" | \
+						grep -Eos " (make)?depends=\([^)]*\)" | sed -r "
+						s/.*\((.*)\).*/\1/mg
+						s/(['\"])([^><=']*)[><=]+[^'\"]*\1/\2/mg
+						s/['\"]//mg" | tr '\n' ' ' | tr '\t' ' ' | sed -r "s/\\\$[^ ]+ //mg")"
+					depends="$(pacman -T $depends | tr '\n' ' ')"
 
-				provides="$(pacman -Si $(pacman -Ssq "($(tr ' ' '|' <<< "$depends"|tr '\n' '|'))"||echo -h) | \
-					grep -E "^(Name|Provides)" | sed -r '
-					s/^[^:]*: //mg
-					s/=[^ ]*//mg' | tr ' ' '\n')"
+					provides="$(pacman -Si $(pacman -Ssq "($(tr ' ' '|' <<< "$depends"|tr '\n' '|'))"||echo -h) | \
+						grep -E "^(Name|Provides)" | sed -r '
+						s/^[^:]*: //mg
+						s/=[^ ]*//mg' | tr ' ' '\n')"
 
-				IFS=$' '
-				for dep in $depends; do
-					unset IFS
-					if ! grep -q "^$dep$" <<< "$provides"; then
-						[[ ! -e $dep/ ]] && spin_download_all d "$dep"
-					else
-						InstallPacman+=("$dep")
-					fi
 					IFS=$' '
+					for dep in $depends; do
+						unset IFS
+						if ! grep -q "^$dep$" <<< "$provides"; then
+							if [[ ! -e $dep/ ]] && ! spin_download_all d "$dep"; then
+								completed=0
+								yes_no "Modify PKGBUILD for $pkg?"
+								if [[ $Response == y ]]; then
+									$EDITOR "$pkg/PKGBUILD"
+									break 1
+								else
+									msg e "Must download dependencies. Exiting." && exit 1
+								fi
+							fi
+						else
+							InstallPacman+=("$dep")
+						fi
+						IFS=$' '
+					done
+					unset IFS
+
+					(( completed )) && break
 				done
-				unset IFS
 			else
 				msg w "$pkg/PKGBUILD not found"
 			fi
+			
+			break
 		else
-			msg e "could not download $pkg. Exiting." && exit 1
+			msg e "could not download $pkg." && return 1
 		fi
 	fi
 }
@@ -339,10 +355,16 @@ spin_download() { #$1 = package; $2 = print (optional)
 	[[ -e $Tmp_build/$package ]] && msg e "already downloaded" && return 1
 	[[ $2 == print && -e $package ]] && msg e "$package/ exists in this directory" && return 1
 
-	spin_curl p "$package" "$package.tar.gz"
-	tar xzf "$package.tar.gz" &>/dev/null
-	result=$?
-	rm "$package.tar.gz" &>/dev/null
+	#copy from Custom if available
+	if [[ -n $Custom && -e $Custom/$package ]]; then
+		cp -r "$Custom/$package" ./
+		result=$?
+	else
+		spin_curl p "$package" "$package.tar.gz"
+		tar xzf "$package.tar.gz" &>/dev/null
+		result=$?
+		rm "$package.tar.gz" &>/dev/null
+	fi
 
 	if [[ $2 == print ]]; then
 		(( $result == 0 )) && \
@@ -604,7 +626,7 @@ chkop() {
 
 sudov() {
 	while true; do
-		sudo -n -v &>/dev/null
+		sudo -n -v
 		sleep $SudovSleep
 	done
 }
@@ -622,6 +644,8 @@ if [[ -e $config ]]; then
 		Spintmpdir="$(grep -s '^Temp=' "$config" | cut -d= -f2)"
 	grep -q '^Editor=' "$config" && \
 		EDITOR="$(grep -s '^Editor=' "$config" | cut -d= -f2)"
+	grep -q '^Custom=' "$config" && \
+		Custom="$(grep -s '^Custom=' "$config" | cut -d= -f2)"
 fi
 
 while [[ -n $1 ]]; do
@@ -636,6 +660,7 @@ while [[ -n $1 ]]; do
 		"--max") shift; blank_arg "$1"; Threads="$1";;
 		"--tmp") shift; blank_arg "$1"; Spintmpdir="$1";;
 		"--edit") shift; blank_arg "$1"; EDITOR="$1";;
+		"--custom") shift; blank_arg "$1"; Custom="$1";;
 		#common
 		"-s") chkop; Op="s";;
 		"-sq") chkop; Op="sq";;
@@ -659,6 +684,9 @@ done
 if [[ $Op ]]; then
 	#disable color if piped to another command
 	[[ ! -t 1 ]] && unset_color
+
+	#make Custom absolute if "./"
+	[[ $Custom == ./ ]] && Custom="$(pwd)"
 
 	case "$Op" in
 		u)  spin_update;			exit 0;;

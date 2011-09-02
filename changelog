@@ -1,6 +1,11 @@
 POSSIBLE:
 	* --needed ?
 
+0.4.25:
+	* removed &>/dev/null from sudo -n -v; let user know if s/he will
+	  have to type in password (and for future debugging)
+	* allow user to modify PKGBUILD if depends can't be downloaded
+	* add support for directory of custom PKGBUILDs
 0.4.24:
 	* fixed problem where all curl results (when finding out if there were
 	  updates) were slopped together; now downloads to separate files and
