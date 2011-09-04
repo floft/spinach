@@ -1,5 +1,6 @@
 POSSIBLE:
-	* --needed ?
+	* --needed
+	* sudov with --noconfirm sometimes results in conflicts
 
 0.4.26:
 	* added '--custom' to --help string
