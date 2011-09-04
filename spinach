@@ -1,11 +1,12 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.25"
+VE="0.4.26"
 
 unset v Op Rep Red Green Yellow Blue Nc
 
 v=0 #set to 1 for verbose messages (msg v cow), of which there currently are none...
 pkgargs=()
+UsrBin=()
 Threads=10
 SudovSleep=5
 Proto="http"
@@ -192,6 +193,9 @@ spin_update() {
 
 	#build Install{Depends,Explicit}
 	build_all
+
+	#check if anything is running and needs to be restarted
+	check_running
 
 	rm "$Tmp/update.lock"
 	kill $Sudov &>/dev/null
@@ -384,8 +388,9 @@ Usage: spinach [options] [operation] [packages]
     --[no]col	Use Color
     --[no]rep	Also use repositories
     --max 10	Set max threads
-    --tmp dir	Set temp directory
+    --tmp /tmp	Set temp directory
     --edit vim	Set \$EDITOR
+    --custom ./	Directory of custom PKGBUILDs
 
   Common Operations
     -s[q] pkg	Search
@@ -462,11 +467,21 @@ build_all() {
 }
 
 build_continue() {
-	local pkg inst
+	local pkg inst i
 	pkg="$1"
 
 	while true; do
-		if makepkg -c; then
+		if makepkg; then
+			#add to list of programs in /usr/bin; see check_running()
+			if [[ -d pkg/usr/bin ]]; then
+				for i in pkg/usr/bin/*; do
+					[[ -f $i ]] && UsrBin+=("${i//*\//}")
+				done
+			fi
+			
+			#clean
+			rm -rf src/ pkg/
+
 			break
 		else
 			yes_no "Correct files for $pkg?"
@@ -482,6 +497,18 @@ build_continue() {
 			fi
 		fi
 	done
+}
+
+check_running() {
+	local i
+	
+	if type ps &>/dev/null; then
+		for i in "${UsrBin[@]}"; do 
+			if ps -eo comm 2>/dev/null | grep "$i" &>/dev/null; then
+				msg n "/usr/bin/$i appears to be running and was updated."
+			fi
+		done
+	fi
 }
 
 spin_curl() {

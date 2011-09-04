@@ -1,6 +1,9 @@
 POSSIBLE:
 	* --needed ?
 
+0.4.26:
+	* added '--custom' to --help string
+	* notify on update if pkg/usr/bin/* is currently running
 0.4.25:
 	* removed &>/dev/null from sudo -n -v; let user know if s/he will
 	  have to type in password (and for future debugging)
