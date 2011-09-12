@@ -1,6 +1,7 @@
 POSSIBLE:
 	* --needed
 	* sudov with --noconfirm sometimes results in conflicts
+	* `spinach -i not-in-aur' prints garbage
 
 0.4.26:
 	* added '--custom' to --help string
