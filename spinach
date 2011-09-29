@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.26"
+VE="0.4.27"
 
 unset v Op Rep Red Green Yellow Blue Nc
 
@@ -341,8 +341,6 @@ spin_download_all() { #$1 = e or d, explicit or depend; $2 = pkg
 			else
 				msg w "$pkg/PKGBUILD not found"
 			fi
-			
-			break
 		else
 			msg e "could not download $pkg." && return 1
 		fi

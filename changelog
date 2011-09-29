@@ -3,6 +3,8 @@ POSSIBLE:
 	* sudov with --noconfirm sometimes results in conflicts
 	* `spinach -i not-in-aur' prints garbage
 
+0.4.27:
+	* removed extra 'break' that made you only able to update one package
 0.4.26:
 	* added '--custom' to --help string
 	* notify on update if pkg/usr/bin/* is currently running
