@@ -3,6 +3,11 @@ POSSIBLE:
 	* sudov with --noconfirm sometimes results in conflicts
 	* `spinach -i not-in-aur' prints garbage
 
+0.4.28:
+	* fixed bug where if multiple pkgs from the repos were specified the
+	  first one would be just installed multiple times
+	* install all repo packages before the AUR ones (one pacman run)
+	* when not found, don't run sudo -v
 0.4.27:
 	* removed extra 'break' that made you only able to update one package
 0.4.26:

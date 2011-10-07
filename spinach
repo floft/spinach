@@ -71,14 +71,15 @@ spin_info() {
 }
 
 spin_install() {
-	local i pkg
+	local i pkg installRepo installAur
 	
 	blank_editor	|| return 1
 	create_tmp	|| return 1
 	
 	cd "$Tmp_build"
 
-	Fromrepo=0
+	installRepo=()
+	installAur=()
 	Downloaded=()
 	InstallPacman=()
 	InstallExplicit=()
@@ -87,22 +88,34 @@ spin_install() {
 	trap "clean_downloaded; kill \$Sudov &>/dev/null; exit 1" 0
 	trap "clean_downloaded; kill \$Sudov &>/dev/null; echo; exit 1" 2 15
 
-	#download
+	#is it in the repos or aur?
 	for pkg; do
 		if (($Rep)) && { pacman -Si "$pkg" &>/dev/null || \
 			[[ $(pacman -Sgq "$pkg" 2>/dev/null | wc -l) != 0 ]]; }; then
-			run_pacman -S $1
-			((Fromrepo++))
+			installRepo+=("$pkg")
 		else
-			spin_download_all e "$pkg"
+			installAur+=("$pkg")
 		fi
 	done
 
+	#install all repo packages
+	if (( ${#installRepo[@]} > 0 )); then
+		run_pacman -S "${installRepo[@]}"
+	fi
+		
+	#don't run anything else if there is nothing else to do
+	(( ${#installAur[@]} == 0 )) && return 0
+
+	#download the rest
+	for pkg in "${installAur[@]}"; do
+		spin_download_all e "$pkg"
+	done
+
+	#don't continue if the packages weren't found
+	(( ${#InstallExplicit[@]} == 0 )) && return 1
+
 	#spin_download_all set it
 	unset IFS
-
-	#don't run anything else if there is nothing to do
-	(( Fromrepo > 0 && ${#Downloaded[@]} == 0 )) && return 0
 
 	#preview
 	for pkg in "${InstallExplicit[@]}" "${InstallDepends[@]}"; do
