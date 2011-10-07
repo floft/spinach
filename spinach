@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.27"
+VE="0.4.28"
 
 unset v Op Rep Red Green Yellow Blue Nc
 
