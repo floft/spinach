@@ -3,6 +3,9 @@ POSSIBLE:
 	* sudov with --noconfirm sometimes results in conflicts
 	* `spinach -i not-in-aur' prints garbage
 
+0.4.29:
+	* don't show spinach is running (duh) message on upgrade
+	* fixed No results message for printing info
 0.4.28:
 	* fixed bug where if multiple pkgs from the repos were specified the
 	  first one would be just installed multiple times

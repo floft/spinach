@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.28"
+VE="0.4.29"
 
 unset v Op Rep Red Green Yellow Blue Nc
 
@@ -56,7 +56,7 @@ spin_info() {
 
 	if (( ! $Rep || $gotinfo )); then
 		spin_curl r info "$query" | sed -r '
-			s/.*No result found.*/Error:Package not found/g
+			s/.*No results? found.*/Error:Package not found/g
 			s/\\"/\&QUOT;/g
 			s/.*results":\{(.*)\}\}/\1/g
 			s/\",\"/\"\n\"/g
@@ -515,7 +515,7 @@ check_running() {
 	
 	if type ps &>/dev/null; then
 		for i in "${UsrBin[@]}"; do 
-			if ps -eo comm 2>/dev/null | grep "$i" &>/dev/null; then
+			if [[ $i != spinach ]] && ps -eo comm 2>/dev/null | grep "$i" &>/dev/null; then
 				msg n "/usr/bin/$i appears to be running and was updated."
 			fi
 		done
