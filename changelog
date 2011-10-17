@@ -2,6 +2,7 @@ POSSIBLE:
 	* --needed
 	* sudov with --noconfirm sometimes results in conflicts
 	* `spinach -i not-in-aur' prints garbage
+	* builds in reverse order of listing?
 
 0.4.29:
 	* don't show spinach is running (duh) message on upgrade
