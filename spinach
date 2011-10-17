@@ -95,8 +95,8 @@ spin_install() {
 			[[ $(pacman -Sgq "$pkg" 2>/dev/null | wc -l) != 0 ]]; }; then
 			installRepo+=("$pkg")
 		else
-			#if installed and --needed, skip
-			if ! pacman -Qi "$pkg" &>/dev/null || ! ((Needed)); then
+			#if installed and --needed option specified, skip
+			if ! ((Needed)) || ! pacman -Qi "$pkg" &>/dev/null; then
 				installAur+=("$pkg")
 			fi
 		fi
@@ -462,7 +462,7 @@ build_all() {
 		cd "$Tmp_build"
 	done
 	
-	for pkg in "${InstallExplicit[$i]}"; do
+	for pkg in "${InstallExplicit[@]}"; do
 		cd "$pkg"
 		
 		#build, correct, build, etc.

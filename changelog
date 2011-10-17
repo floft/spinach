@@ -1,4 +1,5 @@
 0.4.31:
+	* fixed array typo, making it only build one explicit
 	* added back in --noconfirm, and if that fails, then try without
 	* added --needed option
 0.4.30:
