@@ -1,4 +1,4 @@
-.TH spinach 1 "2011-09-02" "Spinach 0.4" "Spinach"
+.TH spinach 1 "2011-10-16" "Spinach 0.4" "Spinach"
 .SH NAME
 spinach \- A small AUR helper written in Bash.
 .SH SYNOPSIS
@@ -22,6 +22,8 @@ If specified the spinach build and cache directories will be stored in spinach/ 
 If specified this will be the max number of curl instances started to find out-of-date packages. If not specified, it defaults to 10. Note: the number of threads will actually be one more than this number assuming that there are at least that many packages to check.
 .IP "--custom"
 The absolute path to a directory full of custom PKGBUILDs (in sub directories with the package name) to use instead of ones in the AUR. One use of this is to use `spinach --custom ./ -i something' to install your version of something with dependencies from the AUR.
+.IP "--needed"
+When specified, AUR packages that are already installed on the computer will be skipped when trying to install them.
 .SH COMMON OPERATIONS
 .IP "-s"
 Search for the specified package. A very similar option is '-sq' which prints only the package name from the search. This allows you to pipe the results to grep to do regex searching. See the EXAMPLES section. Results from '-s' will be sorted; results from '-sq' will not be.

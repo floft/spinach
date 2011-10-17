@@ -1,6 +1,6 @@
-POSSIBLE:
-	* --needed
-
+0.4.31:
+	* added back in --noconfirm, and if that fails, then try without
+	* added --needed option
 0.4.30:
 	* builds depends in reverse order, builds explicit in order of args
 	* takes PKGEXT into consideration

@@ -1,12 +1,13 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.30"
+VE="0.4.31"
 
 unset v Op Rep Red Green Yellow Blue Nc
 
 v=0 #set to 1 for verbose messages (msg v cow), of which there currently are none...
 pkgargs=()
 UsrBin=()
+Needed=0
 Threads=10
 SudovSleep=5
 Proto="http"
@@ -71,7 +72,7 @@ spin_info() {
 }
 
 spin_install() {
-	local i pkg installRepo installAur
+	local i pkg installRepo installAur alreadyInstalled
 	
 	blank_editor	|| return 1
 	create_tmp	|| return 1
@@ -94,7 +95,10 @@ spin_install() {
 			[[ $(pacman -Sgq "$pkg" 2>/dev/null | wc -l) != 0 ]]; }; then
 			installRepo+=("$pkg")
 		else
-			installAur+=("$pkg")
+			#if installed and --needed, skip
+			if ! pacman -Qi "$pkg" &>/dev/null || ! ((Needed)); then
+				installAur+=("$pkg")
+			fi
 		fi
 	done
 
@@ -447,6 +451,7 @@ build_all() {
 		
 		#install
 		(( ${#files[@]} > 0 )) && \
+			run_pacman --noconfirm --asdeps -U "${files[@]}" || \
 			run_pacman --asdeps -U "${files[@]}"
 
 		#cache
@@ -476,9 +481,12 @@ build_all() {
 	done
 
 	#install
-	(( ${#CompiledExplicit[@]} > 0 )) && \
-		run_pacman -U "${CompiledExplicit[@]}" || \
-		{ (( Fromrepo == 0 )) && msg n "That's weird... nothing to install."; }
+	if (( ${#CompiledExplicit[@]} > 0 )); then
+		run_pacman --noconfirm -U "${CompiledExplicit[@]}" || \
+			run_pacman -U "${CompiledExplicit[@]}"
+	else
+		(( Fromrepo == 0 )) && msg n "That's weird... nothing to install."
+	fi
 
 	#move to cache
 	for pkg in "${CompiledExplicit[@]}"; do 
@@ -708,6 +716,7 @@ while [[ -n $1 ]]; do
 		"--tmp") shift; blank_arg "$1"; Spintmpdir="$1";;
 		"--edit") shift; blank_arg "$1"; EDITOR="$1";;
 		"--custom") shift; blank_arg "$1"; Custom="$1";;
+		"--needed") Needed=1;;
 		#common
 		"-s") chkop; Op="s";;
 		"-sq") chkop; Op="sq";;
