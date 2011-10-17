@@ -1,9 +1,11 @@
 POSSIBLE:
 	* --needed
-	* sudov with --noconfirm sometimes results in conflicts
-	* `spinach -i not-in-aur' prints garbage
-	* builds in reverse order of listing?
 
+0.4.30:
+	* builds depends in reverse order, builds explicit in order of args
+	* takes PKGEXT into consideration
+	* removed --noconfirm options; make sure there are no conflicts
+	  beforehand, otherwise don't expect batch behavior
 0.4.29:
 	* don't show spinach is running (duh) message on upgrade
 	* fixed No results message for printing info

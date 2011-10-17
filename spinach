@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.29"
+VE="0.4.30"
 
 unset v Op Rep Red Green Yellow Blue Nc
 
@@ -424,7 +424,10 @@ EOF
 #
 
 build_all() {
-	local i pkg files
+	local i pkg files pkgext pkgbuild_pkgext
+
+	pkgext="$(grep -Eo 'PKGEXT=[^;]*' /etc/makepkg.conf | sed -r "s/PKGEXT=['\"]?([^'\"]+)['\"]?/\1/g")"
+	[[ -z $pkgext ]] && pkgext='.pkg.tar.xz'
 
 	#build (in reverse)
 	for (( i=${#InstallDepends[@]}-1; i >= 0; i-- )); do
@@ -433,15 +436,18 @@ build_all() {
 		
 		#build, correct, build, etc.
 		build_continue "$pkg"
+
+		pkgbuild_pkgext="$(grep -Eo 'PKGEXT=[^;]*' PKGBUILD | sed -r "s/PKGEXT=['\"]?([^'\"]+)['\"]?/\1/g")"
+		[[ -z $pkgbuild_pkgext ]] && pkgbuild_pkgext="$pkgext"
 		
 		#install files later
 		shopt -s nullglob dotglob
-		files=("$Tmp_build/$pkg"/*.pkg.tar.xz)
+		files=("$Tmp_build/$pkg"/*$pkgbuild_pkgext)
 		shopt -u nullglob dotglob
 		
 		#install
 		(( ${#files[@]} > 0 )) && \
-			run_pacman --noconfirm --asdeps -U "${files[@]}"
+			run_pacman --asdeps -U "${files[@]}"
 
 		#cache
 		for pkg in "${files[@]}"; do
@@ -451,16 +457,19 @@ build_all() {
 		cd "$Tmp_build"
 	done
 	
-	for (( i=${#InstallExplicit[@]}-1; i >= 0; i-- )); do
-		pkg="${InstallExplicit[$i]}"
+	for pkg in "${InstallExplicit[$i]}"; do
 		cd "$pkg"
 		
 		#build, correct, build, etc.
 		build_continue "$pkg"
 		
+		#I hate duplicate code... oh well
+		pkgbuild_pkgext="$(grep -Eo 'PKGEXT=[^;]*' PKGBUILD | sed -r "s/PKGEXT=['\"]?([^'\"]+)['\"]?/\1/g")"
+		[[ -z $pkgbuild_pkgext ]] && pkgbuild_pkgext="$pkgext"
+		
 		#install files later
 		shopt -s nullglob dotglob
-		CompiledExplicit+=("$Tmp_build/$pkg"/*.pkg.tar.xz)
+		CompiledExplicit+=("$Tmp_build/$pkg"/*$pkgbuild_pkgext)
 		shopt -u nullglob dotglob
 
 		cd "$Tmp_build"
@@ -468,7 +477,7 @@ build_all() {
 
 	#install
 	(( ${#CompiledExplicit[@]} > 0 )) && \
-		run_pacman --noconfirm -U "${CompiledExplicit[@]}" || \
+		run_pacman -U "${CompiledExplicit[@]}" || \
 		{ (( Fromrepo == 0 )) && msg n "That's weird... nothing to install."; }
 
 	#move to cache
