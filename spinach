@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.31"
+VE="0.4.32"
 
 unset v Op Rep Red Green Yellow Blue Nc
 
@@ -104,7 +104,8 @@ spin_install() {
 
 	#install all repo packages
 	if (( ${#installRepo[@]} > 0 )); then
-		run_pacman -S "${installRepo[@]}"
+		((Needed)) &&	run_pacman --needed -S "${installRepo[@]}" || \
+				run_pacman -S "${installRepo[@]}"
 	fi
 		
 	#don't run anything else if there is nothing else to do
@@ -179,7 +180,7 @@ spin_update() {
 	done
 	
 	#don't ask for password to do nothing
-	(( ${#toUpdate[@]} == 0 )) && exit 0
+	(( ${#toUpdate[@]} == 0 )) && return 0
 
 	#only download what user wanted to update
 	for pkg in "${toUpdate[@]}"; do
@@ -305,6 +306,8 @@ spin_download_all() { #$1 = e or d, explicit or depend; $2 = pkg
 	typ="$1"
 	pkg="$2"
 
+	msg n "spin_download_all $typ $pkg"
+
 	if [[ ! -e $pkg ]]; then
 		if spin_download "$pkg"; then
 			Downloaded+=("$pkg")
@@ -319,12 +322,13 @@ spin_download_all() { #$1 = e or d, explicit or depend; $2 = pkg
 
 			if [[ -e $pkg/PKGBUILD ]]; then
 				while true; do
+					unset IFS
 					completed=1
 					depends="$(tr '\n' ' ' < "$pkg/PKGBUILD" | \
 						grep -Eos " (make)?depends=\([^)]*\)" | sed -r "
 						s/.*\((.*)\).*/\1/mg
 						s/(['\"])([^><=']*)[><=]+[^'\"]*\1/\2/mg
-						s/['\"]//mg" | tr '\n' ' ' | tr '\t' ' ' | sed -r "s/\\\$[^ ]+ //mg")"
+						s/['\"]//mg" | tr '\n' ' ' | tr '\t' ' ' | sed -r "s/\\\$[^ ]+ //mg" | tr ' ' '\n')"
 					depends="$(pacman -T $depends | tr '\n' ' ')"
 
 					provides="$(pacman -Si $(pacman -Ssq "($(tr ' ' '|' <<< "$depends"|tr '\n' '|'))"||echo -h) | \
@@ -433,7 +437,7 @@ build_all() {
 	pkgext="$(grep -Eo 'PKGEXT=[^;]*' /etc/makepkg.conf | sed -r "s/PKGEXT=['\"]?([^'\"]+)['\"]?/\1/g")"
 	[[ -z $pkgext ]] && pkgext='.pkg.tar.xz'
 
-	#build (in reverse)
+	#build depends in reverse
 	for (( i=${#InstallDepends[@]}-1; i >= 0; i-- )); do
 		pkg="${InstallDepends[$i]}"
 		cd "$pkg"

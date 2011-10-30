@@ -1,6 +1,6 @@
-TODO:
-	* make --needed affect repo packages also
-
+0.4.32:
+	* on update, don't reinstall AUR depends unless they are out of date
+	* --needed also affects repo packages
 0.4.31:
 	* fixed array typo, making it only build one explicit
 	* added back in --noconfirm, and if that fails, then try without
