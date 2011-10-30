@@ -1,3 +1,6 @@
+0.4.33:
+	* updated way to get tarball, AUR changed
+	* print when using PKGBUILD from custom directory
 0.4.32:
 	* on update, don't reinstall AUR depends unless they are out of date
 	* --needed also affects repo packages

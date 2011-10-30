@@ -12,7 +12,6 @@ Threads=10
 SudovSleep=5
 Proto="http"
 Host="aur.archlinux.org"
-Pkg="packages/%s/%s.tar.gz"
 Rpc="rpc.php?type=%s&arg=%s"
 
 #
@@ -370,7 +369,11 @@ spin_download() { #$1 = package; $2 = print (optional)
 	local package url result
 
 	package="$1"
-	url="$PROTO://$AUR/packages/$package/$package.tar.gz"
+	url="$(spin_curl r info "$package" | \
+		grep -Eo '"URLPath":"[^"]*"' | sed -r '
+		s/"URLPath":"([^"]*)"/\1/g
+		s/\\\//\//g
+		s/^\///g')"
 	create_tmp	|| return 1
 	
 	[[ -e $Tmp_build/$package ]] && msg e "already downloaded" && return 1
@@ -378,10 +381,11 @@ spin_download() { #$1 = package; $2 = print (optional)
 
 	#copy from Custom if available
 	if [[ -n $Custom && -e $Custom/$package/PKGBUILD ]]; then
+		msg n "Using PKGBUILD from $Custom"
 		cp -r "$Custom/$package" ./
 		result=$?
 	else
-		spin_curl p "$package" "$package.tar.gz"
+		spin_curl p "$url" "$package.tar.gz"
 		tar xzf "$package.tar.gz" &>/dev/null
 		result=$?
 		rm "$package.tar.gz" &>/dev/null
@@ -545,7 +549,7 @@ spin_curl() {
 	local t f s o
 
 	case "$1" in
-		p) t="$Pkg"; f="$2"; s="$2"; o="$3";;
+		p) t="$2%s%s"; f=""; s=""; o="$3";; #%s's to get rid of f and s values
 		r) t="$Rpc"; f="$2"; s="$3"; o="-";;
 		*) return 1;;
 	esac
