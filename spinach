@@ -306,8 +306,6 @@ spin_download_all() { #$1 = e or d, explicit or depend; $2 = pkg
 	typ="$1"
 	pkg="$2"
 
-	msg n "spin_download_all $typ $pkg"
-
 	if [[ ! -e $pkg ]]; then
 		if spin_download "$pkg"; then
 			Downloaded+=("$pkg")
