@@ -646,6 +646,8 @@ blank_editor() {
 
 		[[ -z $EDITOR ]] && msg e "set \$EDITOR" && return 1
 	fi
+
+	return 0
 }
 
 display_color() {
@@ -663,6 +665,8 @@ create_tmp() {
 		msg e "could not create $Tmp"
 		return 1
 	fi
+
+	return 0
 }
 
 set_color() {
