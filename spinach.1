@@ -1,4 +1,4 @@
-.TH spinach 1 "2011-10-16" "Spinach 0.4" "Spinach"
+.TH spinach 1 "2011-12-29" "Spinach 0.4" "Spinach"
 .SH NAME
 spinach \- A small AUR helper written in Bash.
 .SH SYNOPSIS
@@ -55,7 +55,7 @@ Same as specifying --edit editor, overrides $EDITOR
 Same as specifying --custom dir
 .SH NOTES
 .IP "Does Not Ask for Password"
-Newer versions of Spinach are intended to be able to install a bunch of packages easily. First it downloads all the files, then you are prompted to view them, then it installs depends, then it runs 'sudo -v' in the background every few seconds (if you have sudo), and finally compiles the applications. The key part of that sentence is: 'sudo -v' This will keep you from having to type in your password every time an application is compiled (since to compile applications, the depends normally have to be installed). To have this functionality enabled, install sudo. If you you have sudo and don't want it, email me and tell me why. Then I'll add an option to disable it.
+Newer versions of Spinach are intended to be able to install a bunch of packages easily. First it downloads all the files, then you are prompted to view them, then it installs depends, then it runs 'sudo -v' in the background every few seconds (if you have sudo), and finally compiles the applications. The key part of that sentence is: 'sudo -v' This will keep you from having to type in your password every time an application is compiled (since to compile applications, the depends normally have to be installed). To have this functionality enabled, install sudo. If you have sudo and don't want it, email me and tell me why. Then I'll add an option to disable it. Note: make sure the PKGBUILD and .install files don't run anything with sudo... although, there will be a notice if it's in there.
 .IP "View Files"
 When you install packages using Spinach, you will be forced to type "y", return, "n", "y", return "n", etc. if you don't want to view the PKGBUILD and .install files. This is supposed to annoy you. It is for you safety. Read the PKGBUILD and .install files! They could easily delete your files if you don't.
 .IP "Running as Root"

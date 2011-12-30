@@ -7,4 +7,4 @@ Files:
   spinach	the AUR helper
   spinach.1	the man page
   test.sh	test some functionality
-  version_cmp	my [slow] version of vercmp
+  version_cmp	my [slow] version of vercmp (not used anymore)

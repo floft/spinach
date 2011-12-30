@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.32"
+VE="0.4.34"
 
 unset v Op Rep Red Green Yellow Blue Nc
 
@@ -318,6 +318,12 @@ spin_download_all() { #$1 = e or d, explicit or depend; $2 = pkg
 			msg c "Saved" "$pkg"
 
 			if [[ -e $pkg/PKGBUILD ]]; then
+				grep sudo "$pkg/PKGBUILD" &>/dev/null && \
+					msg w "The characters 'sudo' are in the PKGBUILD."
+				
+				grep sudo "$pkg"/*.install &>/dev/null && \
+					msg w "The characters 'sudo' are in the install file."
+
 				while true; do
 					unset IFS
 					completed=1
