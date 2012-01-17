@@ -1,4 +1,4 @@
-.TH spinach 1 "2011-12-29" "Spinach 0.4" "Spinach"
+.TH spinach 1 "2012-01-17" "Spinach 0.4" "Spinach"
 .SH NAME
 spinach \- A small AUR helper written in Bash.
 .SH SYNOPSIS
@@ -26,7 +26,7 @@ The absolute path to a directory full of custom PKGBUILDs (in sub directories wi
 When specified, AUR packages that are already installed on the computer will be skipped when trying to install them.
 .SH COMMON OPERATIONS
 .IP "-s"
-Search for the specified package. A very similar option is '-sq' which prints only the package name from the search. This allows you to pipe the results to grep to do regex searching. See the EXAMPLES section. Results from '-s' will be sorted; results from '-sq' will not be.
+Search for the specified package. A very similar option is '-sq' which prints only the package name from the search. This allows you to pipe the results to grep to do regex searching. See the EXAMPLES section. Results from '-s' will be sorted; results from '-sq' will not be. An asterisk after the name with '-s' indicates an out-of-date package.
 .IP "-p"
 Print information for the specified package.
 .IP "-i"

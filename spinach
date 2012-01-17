@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.34"
+VE="0.4.35"
 
 unset v Op Rep Red Green Yellow Blue Nc
 
@@ -34,7 +34,9 @@ spin_search() { #$1 = v or q, verbose or quiet
 			s/"Version":"[^"]+"//g
 			s/\\"/\&QUOT;/g
 			s/.*\[([^"]*)\]}}/\1/g
-			s/\{[^}]*"Name":"([^"]*)",[^}]*,"Description":"([^"]*)"[^}]*\}/\1: \2\n/g
+			s/"OutOfDate":"0"/"OutOfDate":""/g
+			s/"OutOfDate":"1"/"OutOfDate":" *"/g
+			s/\{[^}]*"Name":"([^"]*)",[^}]*,"Description":"([^"]*)"[^}]*,"OutOfDate":"([^"]*)"[^}]*\}/\1\3: \2\n/g
 			s/^,//mg
 			s/\\\//\//mg
 			s/\\\\/\\/mg
