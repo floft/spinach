@@ -1,3 +1,6 @@
+POSSIBLE:
+	* also use aur3.org?
+
 0.4.35:
 	* print asterisk when searching if out of date
 	* switched some sed junk to jshon
