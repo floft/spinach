@@ -1,5 +1,6 @@
 0.4.35:
 	* print asterisk when searching if out of date
+	* switched some sed junk to jshon
 0.4.34:
 	* notify if 'sudo' is in .install or PKGBUILD
 	* if EDITOR isn't set, still work (doesn't return 0 by default?)

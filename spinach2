@@ -1,0 +1,198 @@
+#!/bin/bash
+UA="Spinach"
+VE="0.5.0"
+Threads=10
+
+#get p url out.tar.gz
+#get r info name
+#get r search name
+#curl $(get rp type arg)
+get() {
+	local str out rpc1 rpc2
+	local print=0;
+	local proto="https"
+	local host="aur.archlinux.org"
+	local rpc="/rpc.php?type=%s&arg=%s"
+
+	case "$1" in
+		p) str="$2%s%s"; out="$3";;
+		r) str="$rpc";   out="-"; rpc1="$2"; rpc2="$3";;
+		rp) str="$rpc";  out="-"; rpc1="$2"; rpc2="$3"; print=1;;
+		*) return 1;
+	esac
+	
+	local url="$(printf "%s://%s$str" "$proto" "$host" "$rpc1" "$rpc2")"
+
+	((print)) && echo "$url" || curl -sfA "$UA" --compressed "$url" -o "$out"
+
+	return $?
+}
+
+#msg e error
+#msg n notice
+#msg w warning
+#msg c prefix message
+msg() {
+	local txt="$2"
+	local prefix=""
+
+	case "$1" in
+		e) prefix="Error";;
+		n) prefix="Notice";;
+		w) prefix="Warning";;
+		c) prefix="$2"; txt="$3";;
+		*) return 1;;
+	esac
+	
+	printf "${Color}%s${NoColor}: %s\n" "$prefix" "$txt"
+
+	return 0
+}
+
+#set_color 1 (true)
+#set_color 0 (false)
+set_color() {
+	local bool=$1
+	
+	local red=$(tput setaf 1)
+	local green=$(tput setaf 2)
+	local yellow=$(tput setaf 3)
+	local blue=$(tput setaf 4)
+	local nc=$(tput sgr0)
+
+	if ((bool)); then
+		Color="$red"
+		NoColor="$nc"
+	else
+		unset Color NoColor
+	fi
+
+	return 0
+}
+
+#command | color
+color() {
+	[[ $Color ]] && cat | sed -r 's/^([^: \t]+[^:]*): +/\'$Color'\1\'$NoColor': /g' | \
+		xargs -0 echo -en || cat
+	
+	return 0
+}
+
+#search v name
+#search q name
+search() {
+	local verbosity="$1"
+	local query="$2"
+
+	if [[ $verbosity == q ]]; then
+		get r search "$query" | jshon -QC -e results -a -e Name -u
+	else
+		get r search "$query" | \
+			jshon -QC -e results -a -e Name -u -p -e OutOfDate -u -p -e Description -u  | \
+			paste -s -d " :\n" | sed -r '
+			s/^([^:]*) 0:/\1: /g
+			s/^([^:]*) 1:/\1 *: /g
+			' | sort | color
+	fi
+
+	return 0
+}
+
+#info query
+info() {
+	local query="$1"
+
+	get r info "$query" | jshon -QC -e results | \
+		tail -n +2 | head -n -1 | sed -r '
+		s/^ "//g
+		s/": "/: /g
+		s/",?$//g
+		s/^URLPath: /URLPath: https:\/\/aur.archlinux.org/g' | color
+	
+	return 0
+}
+
+#get_pkg name
+get_pkg() {
+	local result=0
+	local name="$1"
+	local url="$(get r info "$name" | jshon -QC -e results -e URLPath -u)"
+
+	[[ -e $name ]] && msg e "$name/ exists" && return 1
+
+	get p "$url" "$name.tar.gz"
+	tar xzf "$name.tar.gz" &>/dev/null
+	result=$?
+	rm "$name.tar.gz" &>/dev/null
+
+	(( $result == 0 )) && \
+		msg c "Saved" "$name/" || \
+		msg c "Not Saved" "$name/"
+	
+	return $result
+}
+
+#updates
+updates() {
+	local count=0
+	local threads=()
+	local kill_list=()
+	local tmp="$(mktemp -u)$$"
+
+	trap "kill \"\${kill_list[@]}\" &>/dev/null; rm \"$tmp\"_* &>/dev/null; exit 1" 0 2 15
+
+	#get urls
+	local packages="$(pacman -Qmq)"
+	for pkg in $packages; do
+		threads[$count]+="$(get rp info "$pkg") "
+		(( count == Threads )) && count=0 || (( ++count ))
+	done
+
+	#create threads
+	count=0
+	for urls in "${threads[@]}"; do
+		curl -sfA --compressed $urls > "$tmp"_$count &
+		kill_list+=("$!")
+		(( ++count ))
+	done
+
+	#wait
+	while (( $(jobs|wc -l) > 0 )); do
+		sleep 0.05
+		jobs &>/dev/null
+	done
+
+	#rm "$tmp"_*
+	trap - 0 2 15
+}
+
+usage() {
+	cat <<EOF
+Usage: spinach [options] [operation] [packages]
+
+  Options
+    --[no]ssl	Use SSL
+    --[no]col	Use Color
+    --max 10	Set max threads
+
+  Operations
+    -s[q] pkg	Search
+    -p    pkg	Print info
+
+    -d    pkg	Download
+    -dd   pkg	Download with depends
+    -o		List updates
+    -u		Download updates
+
+Try \`man spinach' for more information.
+EOF
+
+	return 0
+}
+
+set_color 1
+
+#search		-s
+#info		-p
+#get_pkg	-d
+#usage		-h

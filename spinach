@@ -1,10 +1,9 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.35"
+VE="0.4.36"
 
-unset v Op Rep Red Green Yellow Blue Nc
+unset Op Rep Red Green Yellow Blue Nc
 
-v=0 #set to 1 for verbose messages (msg v cow), of which there currently are none...
 pkgargs=()
 UsrBin=()
 Needed=0
@@ -23,25 +22,19 @@ spin_search() { #$1 = v or q, verbose or quiet
 
 	if [[ $1 == q ]]; then
 		(($Rep)) && pacman -Ssq "$query"
+
 		spin_curl r search "$query" | \
-			grep -Eo '"Name":"[^"]*"' | sed -r 's/"Name":"([^"]*)"/\1/g'
+			jshon -QC -e results -a -e Name -u
 	else
 		(($Rep)) && pacman -Ss "$query" | sed -r 's/^([^/\s]+\/[^ ]+) [^\n]+$/\1/g' | \
 			sed -rn '1h;1!H;${;g;s/\n\s+/: /g;p;}' | display_color
-		spin_curl r search "$query" | sed -r '
-			s/.*(No results found).*/\1\n/g
-			s/^\{"type":"error".*/No results found/g
-			s/"Version":"[^"]+"//g
-			s/\\"/\&QUOT;/g
-			s/.*\[([^"]*)\]}}/\1/g
-			s/"OutOfDate":"0"/"OutOfDate":""/g
-			s/"OutOfDate":"1"/"OutOfDate":" *"/g
-			s/\{[^}]*"Name":"([^"]*)",[^}]*,"Description":"([^"]*)"[^}]*,"OutOfDate":"([^"]*)"[^}]*\}/\1\3: \2\n/g
-			s/^,//mg
-			s/\\\//\//mg
-			s/\\\\/\\/mg
-			s/\&QUOT;/"/mg
-			s/^]}//mg' | sort | display_color
+
+		spin_curl r search "$query" | \
+			jshon -QC -e results -a -e Name -u -p -e OutOfDate -u -p -e Description -u  | \
+			paste -s -d " :\n" | sed -r '
+			s/^([^:]*) 0:/\1: /g
+			s/^([^:]*) 1:/\1 *: /g
+			' | sort | display_color
 	fi
 }
 
@@ -57,18 +50,12 @@ spin_info() {
 	fi
 
 	if (( ! $Rep || $gotinfo )); then
-		spin_curl r info "$query" | sed -r '
-			s/.*No results? found.*/Error:Package not found/g
-			s/\\"/\&QUOT;/g
-			s/.*results":\{(.*)\}\}/\1/g
-			s/\",\"/\"\n\"/g
-			s/\\\//\//mg
-			s/"//mg
-			s/^([^:]*):/\1: /mg
-			s/\\\\/\\/mg
-			s/\&QUOT;/"/mg
-			s/^URLPath: /URLPath: https:\/\/aur.archlinux.org/mg' | display_color
-		echo
+		spin_curl r info "$query" | jshon -QC -e results | \
+			tail -n +2 | head -n -1 | sed -r '
+			s/^ "//g
+			s/": "/: /g
+			s/",?$//g
+			s/^URLPath: /URLPath: https:\/\/aur.archlinux.org/g' | display_color
 	fi
 }
 
@@ -377,11 +364,7 @@ spin_download() { #$1 = package; $2 = print (optional)
 	local package url result
 
 	package="$1"
-	url="$(spin_curl r info "$package" | \
-		grep -Eo '"URLPath":"[^"]*"' | sed -r '
-		s/"URLPath":"([^"]*)"/\1/g
-		s/\\\//\//g
-		s/^\///g')"
+	url="$(spin_curl r info "$package" | jshon -QC -e results -e URLPath -u)"
 	create_tmp	|| return 1
 	
 	[[ -e $Tmp_build/$package ]] && msg e "already downloaded" && return 1
