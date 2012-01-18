@@ -1,9 +1,7 @@
-POSSIBLE:
-	* also use aur3.org?
-
 0.4.98:
-	* removed repo support
+	* added aur3 support
 	* added UseBatch option to disable using `sudo -v'
+	* reworked code; more features, less code
 0.4.36:
 	* switched some sed junk to jshon
 0.4.35:

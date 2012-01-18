@@ -9,23 +9,25 @@ spinach \- A small AUR helper written in Bash.
 is a very tiny AUR helper written in Bash that will help you download, install, and update packages from the AUR.
 .SH OPTIONS
 .IP "--[no]ssl"
-Use SSL when downloading packages and information from the AUR. This option has no effect on the pacman operations enabled with the '--rep' option.
+Use SSL when downloading packages and information from the AUR. This option has no effect on the pacman operations enabled with the '--rep' option or when using the --aur3 option.
 .IP "--[no]col"
 Use color in certian places.
 .IP "--[no]bat"
 Run `sudo v' in the background to keep you from having to type in your password multiple times.
 .IP "--[no]rep"
-Also use pacman for \fIsearch\fR, \fIprint\fR, and \fIinstall\fR operations. Searching will return results from both the AUR and official repositories. Printing information will return information from pacman if available and the AUR if not. Installing will install via the official repositories if found and attempt to install from the AUR otherwise.
+Also use pacman for the \fIinstall\fR operations. Installing will install via the official repositories if found and attempt to install from the AUR otherwise.
 .IP "--edit"
 Specify the text editor to use in order to view the PKGBUILD and .install files when installing and upgrading packages. Defaults in this order if not specified: $EDITOR vim emacs vi nano most less more cat
 .IP "--tmp"
 If specified the spinach build and cache directories will be stored in spinach/ in this folder. If not specified, it will default to $TMPDIR if specified and as a last resort /tmp.
 .IP "--max"
-If specified this will be the max number of curl instances started to find out-of-date packages. If not specified, it defaults to 10. Note: the number of threads will actually be one more than this number assuming that there are at least that many packages to check.
+If specified this will be the max number of curl instances started to find out-of-date packages. If not specified, it defaults to 10.
 .IP "--custom"
 The absolute path to a directory full of custom PKGBUILDs (in sub directories with the package name) to use instead of ones in the AUR. One use of this is to use `spinach --custom ./ -i something' to install your version of something with dependencies from the AUR.
 .IP "--needed"
 When specified, AUR packages that are already installed on the computer will be skipped when trying to install them.
+.IP "--aur3"
+Download packages from the aur3.org mirror instead of aur.archlinux.org. Useful for when the AUR is down. This doesn't work with --[no]ssl, the output of -s is the same as -sq, and the output of -p isn't prettified.
 .SH COMMON OPERATIONS
 .IP "-s"
 Search for the specified package. A very similar option is '-sq' which prints only the package name from the search. This allows you to pipe the results to grep to do regex searching. See the EXAMPLES section. Results from '-s' will be sorted; results from '-sq' will not be. An asterisk after the name with '-s' indicates an out-of-date package.
@@ -45,10 +47,10 @@ List packages that are older than the one in the AUR.
 .IP "-do"
 Download all the AUR packages that are older than the one in the AUR to the current directory.
 .SH CONFIG (optional)
-.IP "UseSSL=1 UseBatch=1 UseColor=1"
-Same as specifying --ssl, --bat, and --col.
-.IP "UseSSL=0 UseBatch=0 UseColor=0"
-Same as specifying --nossl, --nobat, and --nocol.
+.IP "UseSSL=1 UseRepos=1 UseBatch=1 UseColor=1"
+Same as specifying --ssl, --rep, --bat, and --col.
+.IP "UseSSL=0 UseRepos=0 UseBatch=0 UseColor=0"
+Same as specifying --nossl, --norep, --nobat, and --nocol.
 .IP "Threads"
 Same as specifying --max number
 .IP "Temp"
@@ -69,15 +71,15 @@ If there is no Internet connection, Spinach probably won't print anything for mo
 .IP "Version Control"
 If you have some version-control package (-svn, -git, -hg, etc.) and you want to keep the trunk while updating, upgrade the package manually instead of using the automatic upgrade operation (-u). After installing an application (or upgrading) spinach will remove the files from the spinach/build/ directory.
 .IP "Spinach Cache"
-When you install or upgrade an application, the build directory in your temporary directory is deleted, but the generated package (if it was successfully created) will be copied to $Spintmpdir/spinach/cache/<bunch of text>.pkg.tar.xz. You can set the Spinach temp directory either in the config file or with the --tmp option.
+When you install or upgrade an application, the build directory in your temporary directory is deleted, but the generated package (if it was successfully created) will be copied to $Temp/spinach/cache/<bunch of text>.pkg.tar.xz. You can set the Spinach Temp directory either in the config file or with the --tmp option.
 .IP "Config versus Options"
 Options specified (e.g. --ssl) will override whatever is in the config file (e.g. UseSSL).
 .SH EXAMPLES
-spinach -u
+spinach --aur3 -u
 .TP
 spinach --nossl -p package1 package2
 .TP
-source /usr/bin/spinach --col; aur_info spinach
+source /usr/bin/spinach --col; info spinach
 .TP
 spinach --col -dd $(spinach -sq openlp)
 Download all AUR packages returned from a search.

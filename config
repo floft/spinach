@@ -11,6 +11,7 @@
 # 
 
 UseSSL=0
+UseRepos=1
 UseColor=1
 UseBatch=1
 
@@ -18,7 +19,7 @@ UseBatch=1
 Threads=10
 
 ##Temporary directory (absolute path)
-#Tmpdir=/tmp
+#Temp=/tmp
 
 ##Prefered editor
 #EDITOR=vim
