@@ -1,4 +1,4 @@
-.TH spinach 1 "2012-01-17" "Spinach 0.4" "Spinach"
+.TH spinach 1 "2012-01-17" "Spinach 0.5" "Spinach"
 .SH NAME
 spinach \- A small AUR helper written in Bash.
 .SH SYNOPSIS
@@ -12,6 +12,8 @@ is a very tiny AUR helper written in Bash that will help you download, install, 
 Use SSL when downloading packages and information from the AUR. This option has no effect on the pacman operations enabled with the '--rep' option.
 .IP "--[no]col"
 Use color in certian places.
+.IP "--[no]bat"
+Run `sudo v' in the background to keep you from having to type in your password multiple times.
 .IP "--[no]rep"
 Also use pacman for \fIsearch\fR, \fIprint\fR, and \fIinstall\fR operations. Searching will return results from both the AUR and official repositories. Printing information will return information from pacman if available and the AUR if not. Installing will install via the official repositories if found and attempt to install from the AUR otherwise.
 .IP "--edit"
@@ -43,8 +45,10 @@ List packages that are older than the one in the AUR.
 .IP "-do"
 Download all the AUR packages that are older than the one in the AUR to the current directory.
 .SH CONFIG (optional)
-.IP "UseSSL UseRepos UseColor"
-Same as specifying --ssl, --rep, and --col.
+.IP "UseSSL=1 UseBatch=1 UseColor=1"
+Same as specifying --ssl, --bat, and --col.
+.IP "UseSSL=0 UseBatch=0 UseColor=0"
+Same as specifying --nossl, --nobat, and --nocol.
 .IP "Threads"
 Same as specifying --max number
 .IP "Temp"
@@ -55,11 +59,11 @@ Same as specifying --edit editor, overrides $EDITOR
 Same as specifying --custom dir
 .SH NOTES
 .IP "Does Not Ask for Password"
-Newer versions of Spinach are intended to be able to install a bunch of packages easily. First it downloads all the files, then you are prompted to view them, then it installs depends, then it runs 'sudo -v' in the background every few seconds (if you have sudo), and finally compiles the applications. The key part of that sentence is: 'sudo -v' This will keep you from having to type in your password every time an application is compiled (since to compile applications, the depends normally have to be installed). To have this functionality enabled, install sudo. If you have sudo and don't want it, email me and tell me why. Then I'll add an option to disable it. Note: make sure the PKGBUILD and .install files don't run anything with sudo... although, there will be a notice if it's in there.
+Newer versions of Spinach are intended to be able to install a bunch of packages easily. First it downloads all the files, then you are prompted to view them, then it installs depends, then it runs 'sudo -v' in the background every few seconds (if you have sudo and don't have --nobat or UseBatch=0), and finally compiles the applications. The key part of that sentence is: 'sudo -v' This will keep you from having to type in your password every time an application is compiled (since to compile applications, the depends normally have to be installed). Note: make sure the PKGBUILD and .install files don't run anything with sudo... although, there will be a notice if it's in there.
 .IP "View Files"
 When you install packages using Spinach, you will be forced to type "y", return, "n", "y", return "n", etc. if you don't want to view the PKGBUILD and .install files. This is supposed to annoy you. It is for you safety. Read the PKGBUILD and .install files! They could easily delete your files if you don't.
 .IP "Running as Root"
-Never run Spinach as root. It will run makepkg as root which will run the PKGBUILD as root. You don't want that. There is nothing stopping you from running at root though. If you don't care about trashing your system, have fun running it as root.
+Never run Spinach as root. It will run makepkg as root which will run the PKGBUILD as root. You don't want that. There is nothing stopping you from running at root though. If you don't care about trashing your system, have fun running it as root. Note: you'll probably have to modify the lines with 'makepkg' in them...
 .IP "No Internet"
 If there is no Internet connection, Spinach probably won't print anything for most operations.
 .IP "Version Control"

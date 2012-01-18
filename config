@@ -3,22 +3,26 @@
 # place this example config in either:
 # 	$XDG_CONFIG_HOME/spinach/config or
 # 	$HOME/.config/spinach/config
+#
+# Use*=1 for true
+# Use*=0 for false
 # 
 # See `man spinach' for more information.
 # 
 
-UseSSL
-UseRepos
-UseColor
+UseSSL=1
+#UseRepos=1
+UseColor=1
+UseBatch=1
 
 ##Max number of threads to use
 Threads=10
 
 ##Temporary directory (absolute path)
-#Temp=/tmp
+#Tmpdir=/tmp
 
 ##Prefered editor
-#Editor=vim
+#EDITOR=vim
 
 ##Custom PKGBUILDs
 #Custom=/home/user/PKGBUILDs

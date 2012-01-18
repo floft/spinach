@@ -31,7 +31,7 @@ spin_search() { #$1 = v or q, verbose or quiet
 
 		spin_curl r search "$query" | \
 			jshon -QC -e results -a -e Name -u -p -e OutOfDate -u -p -e Description -u  | \
-			paste -s -d " :\n" | sed -r '
+			paste -sd " :\n" | sed -r '
 			s/^([^:]*) 0:/\1: /g
 			s/^([^:]*) 1:/\1 *: /g
 			' | sort | display_color
