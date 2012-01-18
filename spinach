@@ -49,7 +49,7 @@ spin_info() {
 		[[ $info ]] && display_color <<< "$info"
 	fi
 
-	if (( ! $Rep || $gotinfo )); then
+	if ! (( $Rep )) || (( $gotinfo )); then
 		spin_curl r info "$query" | jshon -QC -e results | \
 			tail -n +2 | head -n -1 | sed -r '
 			s/^ "//g

@@ -51,15 +51,17 @@ msg() {
 set_color() {
 	local red=$(tput setaf 1)
 	local green=$(tput setaf 2)
-	local yellow=$(tput setaf 3)
 	local blue=$(tput setaf 4)
+	#local yellow=$(tput setaf 3)
 	local nc=$(tput sgr0)
 
 	if (( UseColor )); then
 		Color="$red"
+		UpdateOld="$blue"
+		UpdateNew="$green"
 		NoColor="$nc"
 	else
-		unset Color NoColor
+		unset Color NoColor UpdateOld UpdateNew
 	fi
 
 	return 0
@@ -76,9 +78,10 @@ color() {
 #ask "really?" || break
 ask() {
 	local response
+	local question="$1"
 
 	while [[ $response != y && $response != n ]]; do
-		printf "${Color}y/n${NoColor}: %s " "$question"
+		printf "${Color}y/n${NoColor}: %s " "$question" >&2
 		read response
 	done
 
@@ -91,14 +94,15 @@ preview() {
 	local name="$1"
 	local question=${2:-View}
 
-	if ask "$question $name?"; then
+	if ask "${question} ${name}?"; then
 		"$EDITOR" "PKGBUILD"
 
 		install_file="$(grep ^install= "PKGBUILD" | cut -d= -f2 | tr -d "'\"")"
 		[[ -e $install_file ]] && "$EDITOR" "$install_file"
 	fi
 
-	return $(ask "Install $name?")
+	ask "Install $name?"
+	return $?
 }
 
 #run_pacman -S something
@@ -112,8 +116,8 @@ run_pacman() {
 			su root -c pacman "$@"
 		fi
 
-		(( $? == 0 )) && break
-		ask "Try again?" || break
+		(( $? == 0 )) && return 0
+		ask "Try again?" || return 1
 	done
 }
 
@@ -151,17 +155,27 @@ info() {
 	return 0
 }
 
-#get_pkg name
+#get_pkg name [ignore]
 get_pkg() {
 	local result=0
 	local name="$1"
+	local ignore=$2
 	local url="$(get r info "$name" | jshon -QC -e results -e URLPath -u)"
 
-	[[ -e $name ]] && msg e "$name/ exists" && return 1
+	[[ -z $ignore ]] && ignore=0
+
+	if [[ -e $name ]]; then
+		if (( ignore )); then
+			return 0
+		else
+			msg e "$name/ exists"
+			return 1
+		fi
+	fi
 
 	if [[ -n $Custom && -e $Custom/$name/PKGBUILD ]]; then
 		msg n "Using PKGBUILD from $Custom"
-		cp -r "$Custom/$package" ./
+		cp -r "$Custom/$name" ./
 		result=$?
 	else
 		get p "$url" "$name.tar.gz"
@@ -186,8 +200,12 @@ get_all() {
 
 	[[ -z $explicit ]] && explicit=1
 
-	[[ -e $name ]]  && { msg n "already downloaded $name/"; return 1; }
-	get_pkg "$name" || { msg e "could not download $name";  return 1; }
+	if (( explicit )); then
+		[[ -e $name ]]  && { msg n "already downloaded $name/"; return 1; }
+		get_pkg "$name" || { msg e "could not download $name";  return 1; }
+	else
+		get_pkg "$name" 1 || { msg e "could not download $name";  return 1; }
+	fi
 
 	Downloaded+=("$pkg")
 	(( explicit )) && \
@@ -196,9 +214,9 @@ get_all() {
 	
 	[[ -e $name/PKGBUILD ]] || { msg e "$name/PKGBUILD does not exist"; return 1; }
 
-	grep -q sudo "$name/PKGBUILD" && \
+	grep sudo "$name/PKGBUILD" &>/dev/null && \
 		msg w "The characters 'sudo' are in the PKGBUILD."
-	grep -q sudo "$name/"*.install && \
+	grep sudo "$name/"*.install &>/dev/null && \
 		msg w "The characters 'sudo' are in the install file."
 
 	local finished=0;
@@ -213,7 +231,7 @@ get_all() {
 
 		local provide=""
 
-		[[ -n $deps ]] && provide="$(pacman -Si $(pacman -Ssq "^($(tr ' ' '|' <<< "$deps"))$" || -h)) | \
+		[[ -n $deps ]] && provide="$(pacman -Si $(pacman -Ssq "^($(tr ' ' '|' <<< "$deps"))$" || echo -h) | \
 			grep -E "^(Name|Provides)" | sed '
 			s/^[^:]*: //g
 			s/=[^ ]*//g' | tr ' ' '\n')"
@@ -289,9 +307,10 @@ updates() {
 		local aur="$(cut -f2 <<< "$pkg")"				#AUR version
 		local loc="$(grep -A 1 "^$name$" <<< "$pacman" | tail -n 1)"	#local version
 
-		if [[ $aur != $loc && -n $loc ]] && (( $(vercmp "$aur" "$loc") < 0 )); then
+		if [[ $aur != $loc && -n $loc ]] && (( $(vercmp "$aur" "$loc") > 0 )); then
 			echo "$name"
-			msg c "Update" "$name"
+			printf "${Color}%s${NoColor} (${UpdateOld}%s${NoColor} => ${UpdateNew}%s${NoColor})\n" \
+				"$name" "$loc" "$aur" >&2
 		fi
 	done
 }
@@ -311,8 +330,8 @@ install_pkg() {
 	InstallDepends=()
 	InstallExplicit=()
 	
-	trap "clean; kill \$Sudov &>/dev/null; exit 0" 0
-	trap "clean; kill \$Sudov &>/dev/null; echo; exit 1" 2 15
+	trap "touch \"$Tmp/$KillSudov\"; clean; wait; rm \"$Tmp/$KillSudov\"; exit 1" 0
+	trap "touch \"$Tmp/$KillSudov\"; clean; wait; rm \"$Tmp/$KillSudov\"; echo; exit 1" 2 15
 
 	#TODO remove repo business here?
 	for pkg; do
@@ -331,10 +350,12 @@ install_pkg() {
 				run_pacman          -S "${installRepo[@]}"
 	fi
 
-	build "${installAur[@]}"
+	build "${installAur[@]}" || return 1
 	
-	kill $Sudov &>/dev/null
+	touch "$Tmp/$KillSudov"
 	clean
+	wait
+	rm "$Tmp/$KillSudov"
 	trap - 0 2 15
 }
 
@@ -345,30 +366,41 @@ install_updates() {
 
 	cd "$Build"
 
-	local update
+	local update pkg 
 	local packages=()
+	local upgrade_pkgs=()
+	Downloaded=()
+	InstallPacman=()
+	InstallDepends=()
+	InstallExplicit=()
+
+	while read -r update; do
+		packages+=("$update")
+	done < <(updates)
 
 	[[ -e $Tmp/update.lock ]] && msg e "update lock exists in $Tmp/" && return 1
 	touch "$Tmp/update.lock"
 
-	while read -r update; do
-		ask "Update $pkg?" && packages+=("$update")
-	done < <(updates)
+	trap "touch \"$Tmp/$KillSudov\"; clean; rm \"$Tmp/update.lock\" &>/dev/null; wait; rm \"$Tmp/$KillSudov\"; exit 1" 0
+	trap "touch \"$Tmp/$KillSudov\"; clean; rm \"$Tmp/update.lock\" &>/dev/null; wait; rm \"$Tmp/$KillSudov\"; echo; exit 1" 2 15
 
-	trap "clean; rm \"$Tmp/update.lock\" &>/dev/null; kill \$Sudov &>/dev/null; exit 0" 0
-	trap "clean; rm \"$Tmp/update.lock\" &>/dev/null; kill \$Sudov &>/dev/null; echo; exit 1" 2 15
+	for pkg in "${packages[@]}"; do
+		ask "Update $pkg?" && upgrade_pkgs+=("$pkg")
+	done
 
-	build "${packages[@]}"
+	build "${upgrade_pkgs[@]}" || return 1
 
 	check_running
 
 	rm "$Tmp/update.lock"
-	kill $Sudov &>/dev/null
+	touch "$Tmp/$KillSudov"
 	clean
+	wait
+	rm "$KillSudov"
 	trap - 0 2 15
 }
 
-#build package(s)
+#build package(s) || return 1
 build() {
 	local pkg i PKGEXT
 
@@ -381,7 +413,7 @@ build() {
 
 	for pkg in "${InstallExplicit[@]}" "${InstallDepends[@]}"; do
 		cd "$pkg"
-		preview "$pkg"
+		preview "$pkg" || { msg e "not building package. Exiting."; return 1; }
 		cd "$Build"
 	done
 
@@ -392,17 +424,19 @@ build() {
 		msg c "Running" "sudo -v"
 		if sudo -v; then
 			sudov &
-			Sudov=$!
 		else
 			msg n "Falling back to non-batch mode"
 		fi
 	fi
 
 	source <(grep ^PKGEXT= /etc/makepkg.conf)
-	[[ -z PKGEXT ]] && PKGEXT='.pkg.tar.xz'
+	[[ -z $PKGEXT ]] && PKGEXT='.pkg.tar.xz'
 
 	for (( i=${#InstallDepends[@]}-1; i >= 0; --i )); do
-		mk_pkg "${InstallDepends[$i]}" "$PKGEXT" 1
+		if ! mk_pkg "${InstallDepends[$i]}" "$PKGEXT" 1; then
+			msg e "must build depends. Exiting."
+			return 1
+		fi
 	done
 
 	for pkg in "${InstallExplicit[@]}"; do
@@ -412,7 +446,7 @@ build() {
 
 #mk_pkg dir PKGEXT depends
 mk_pkg() {
-	local i PKGEXT asdeps
+	local i PKGEXT asdeps files
 	local pkg="$1"
 	local makepkg_pkgext="$2"
 	local is_depend=$3
@@ -438,7 +472,7 @@ mk_pkg() {
 	done
 
 	source <(grep ^PKGEXT= PKGBUILD)
-	[[ -z PKGEXT ]] && PKGEXT="$makepkg_pkgext"
+	[[ -z $PKGEXT ]] && PKGEXT="$makepkg_pkgext"
 
 	shopt -s nullglob dotglob
 	files=("$Build/$pkg"/*$PKGEXT)
@@ -446,10 +480,9 @@ mk_pkg() {
 
 	if (( ${#files[@]} > 0 )); then
 		if (( UseBatch )); then
-			run_pacman --noconfirm $asdeps -U "${files[@]}" || \
-				run_command $asdeps -U "${files[@]}"
+			run_pacman --noconfirm $asdeps -U "${files[@]}"
 		else
-			run_command $asdeps -U "${files[@]}"
+			run_pacman $asdeps -U "${files[@]}"
 		fi
 	fi
 
@@ -476,9 +509,18 @@ get_updates() {
 
 #sudov &
 sudov() {
-	while true; do
+	while [[ ! -e $Tmp/$KillSudov ]]; do
 		sudo -n -v
 		sleep $Sleep
+	done
+}
+
+#clean
+clean() {
+	local file
+
+	for file in "${Downloaded[@]}"; do
+		[[ -e $Build/$file ]] && rm -rf "$Build/$file/" &>/dev/null
 	done
 }
 
@@ -519,8 +561,8 @@ mk_tmp() {
 	[[ -z $Tmpdir ]] && Tmpdir=${TMPDIR:-/tmp}
 
 	Tmp="$Tmpdir/spinach"
-	Build="$tmp/build"
-	Cache="$tmp/cache"
+	Build="$Tmp/build"
+	Cache="$Tmp/cache"
 
 	if ! mkdir -p "$Tmp" "$Build" "$Cache" &>/dev/null; then
 		msg e "could not create $Tmp"
@@ -572,12 +614,13 @@ EOF
 unset Op Tmpdir Custom
 
 Threads=10
-Sleep=5
+Sleep=2
 UsrBin=()
 Pkgargs=()
+KillSudov="killsudov.lock"
 
 Needed=0
-UseSSL=1
+UseSSL=0
 UseRepos=1
 UseColor=1
 UseBatch=1
