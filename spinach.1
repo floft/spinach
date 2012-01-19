@@ -1,4 +1,4 @@
-.TH spinach 1 "2012-01-17" "Spinach 0.5" "Spinach"
+.TH spinach 1 "2012-01-19" "Spinach 0.5" "Spinach"
 .SH NAME
 spinach \- A small AUR helper written in Bash.
 .SH SYNOPSIS
@@ -46,6 +46,8 @@ Download the specified package from the AUR and any AUR dependencies to the curr
 List packages that are older than the one in the AUR.
 .IP "-do"
 Download all the AUR packages that are older than the one in the AUR to the current directory.
+.IP "--404"
+List all the foreign packages installed that are not found in the AUR.
 .SH CONFIG (optional)
 .IP "UseSSL=1 UseRepos=1 UseBatch=1 UseColor=1"
 Same as specifying --ssl, --rep, --bat, and --col.

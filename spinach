@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.99"
+VE="0.5.0"
 
 #get p url out.tar.gz
 #get r info name
@@ -288,6 +288,41 @@ get_all() {
 	done
 }
 
+#notfound
+notfound() {
+	local thread_list=()
+	local packages="$(pacman -Qmq)"
+
+	trap "for t in \"\${thread_list[@]}\"; do kill \$t &>/dev/null; done; echo; exit 1" 0 2 15
+
+	for pkg in $packages; do
+		if (( UseAUR3 )); then
+			curl -sfA "$UA" "http://aur3.org/rpc/$pkg" &>/dev/null || msg c "Not found" "$pkg" &
+			thread_list+=("$!")
+		else
+			get r info "$pkg" | grep "No result" &>/dev/null && msg c "Not found" "$pkg" &
+			thread_list+=("$!")
+		fi
+
+		thread_wait $Threads
+	done
+		
+	thread_wait
+
+	trap - 0 2 15
+}
+
+#thread_wait $Threads
+thread_wait() {
+	local threads="$1"
+	[[ -z threads ]] && threads=0
+
+	while (( $(jobs|wc -l) > threads )); do
+		sleep 0.05
+		jobs &>/dev/null
+	done &>/dev/null
+}
+
 #while read -r pkg; do echo $pkg; done < <(updates)
 updates() {
 	local pkg file info
@@ -319,10 +354,7 @@ updates() {
 	done
 
 	#wait
-	while (( $(jobs|wc -l) > 0 )); do
-		sleep 0.05
-		jobs &>/dev/null
-	done
+	thread_wait
 
 	#parse AUR versions
 	local aur=()
@@ -643,6 +675,7 @@ Usage: spinach [options] [operation] [packages]
     -dd   pkg	Download with depends
     -o		List updates
     -do		Download updates
+     --404	List packages not in AUR
 
 Try \`man spinach' for more information.
 EOF
@@ -700,6 +733,7 @@ while [[ -n $1 ]]; do
 		"-dd") chkop; Op="dd";;
 		"-do") chkop; Op="do";;
 		#other
+		"--404") chkop; Op="404";;
 		"--version") echo "$UA/$VE"; exit 0;;
 		"-h"|"--help") usage; exit 0;;
 		*) Pkgargs+=("$1");;
@@ -718,10 +752,11 @@ if [[ $Op ]]; then
 	[[ $Custom == ./ ]] && Custom="$(pwd)"
 
 	case "$Op" in
-		u)  install_updates;			exit 0;;
-		o)  find_updates;			exit 0;;
-		do) get_updates; 			exit 0;;
-		i)  install_pkg "${Pkgargs[@]}";	exit 0;;
+		u)      install_updates;		exit 0;;
+		o)      find_updates;			exit 0;;
+		do)     get_updates; 			exit 0;;
+		i)      install_pkg "${Pkgargs[@]}";	exit 0;;
+		404)    notfound;			exit 0;;
 	esac
 
 	if (( ${#Pkgargs[@]} > 0 )); then
