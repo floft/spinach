@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.4.98"
+VE="0.4.99"
 
 #get p url out.tar.gz
 #get r info name
@@ -82,7 +82,7 @@ ask() {
 
 	while [[ $response != y && $response != n ]]; do
 		printf "${Color}y/n${NoColor}: %s " "$question" >&2
-		read response
+		read -r response
 	done
 
 	[[ $response == y ]] && return 0
@@ -240,7 +240,7 @@ get_all() {
 		get_pkg "$name" 1 || { msg e "could not download $name";  return 1; }
 	fi
 
-	Downloaded+=("$pkg")
+	Downloaded+=("$name")
 	(( explicit )) && \
 		InstallExplicit+=("$name") || \
 		InstallDepends+=("$name")
@@ -271,10 +271,9 @@ get_all() {
 			s/=[^ ]*//g' | tr ' ' '\n')"
 
 		for dep in $deps; do
-			[[ -e $dep/ ]] && continue
 			grep -q "^$dep$" <<< "$provide" && InstallPacman+=("$dep") && continue
 			
-			if ! get_all "$dep" 1; then
+			if ! get_all "$dep" 0; then
 				finished=0
 
 				if ask "Modify PKGBUILD for $pkg?"; then
@@ -371,7 +370,6 @@ install_pkg() {
 	trap "touch \"$Tmp/$KillSudov\"; clean; wait; rm \"$Tmp/$KillSudov\"; exit 1" 0
 	trap "touch \"$Tmp/$KillSudov\"; clean; wait; rm \"$Tmp/$KillSudov\"; echo; exit 1" 2 15
 
-	#TODO remove repo business here?
 	for pkg; do
 		if (( UseRepos )) && { pacman -Si "$pkg" &>/dev/null || \
 			(( $(pacman -Sgq "$pkg" 2>/dev/null | wc -l) )); }; then
@@ -504,6 +502,7 @@ mk_pkg() {
 		else
 			if ! preview "$pkg" "Correct files for"; then
 				msg e "could not build $pkg"
+				cd "$Build"
 				return 1
 			fi
 		fi
@@ -556,9 +555,9 @@ sudov() {
 #clean
 clean() {
 	local file
-
+	
 	for file in "${Downloaded[@]}"; do
-		[[ -e $Build/$file ]] && rm -rf "$Build/$file/" &>/dev/null
+		[[ -e $Build/$file ]] && rm -rf "$Build/$file" &>/dev/null
 	done
 }
 
