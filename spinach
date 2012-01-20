@@ -690,6 +690,7 @@ Sleep=2
 UsrBin=()
 Pkgargs=()
 KillSudov="killsudov$$.lock"
+Current_directory="$(pwd)"
 
 Needed=0
 UseSSL=0
@@ -748,8 +749,8 @@ if [[ $Op ]]; then
 	
 	(( UseSSL )) && Proto="https" || Proto="http"
 
-	#need absolute
-	[[ $Custom == ./ ]] && Custom="$(pwd)"
+	#make absolute
+	[[ -n $Custom && ${Custom:0:1} != / ]] && Custom="$(pwd)/$Custom"
 
 	case "$Op" in
 		u)      install_updates;		exit 0;;
