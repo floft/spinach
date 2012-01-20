@@ -1,5 +1,6 @@
 0.5.0:
 	* added --404 to find non-existant AUR packages
+	* make --custom absolute
 0.4.99:
 	* fixed install problems
 0.4.98:
