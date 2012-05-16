@@ -1,3 +1,6 @@
+0.5.01:
+	* fixed infinite loop when installing packages that depend on a
+	  package that doesn't specify the depends array
 0.5.0:
 	* added --404 to find non-existant AUR packages
 	* make --custom absolute

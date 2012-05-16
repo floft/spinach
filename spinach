@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.5.0"
+VE="0.5.01"
 
 #get p url out.tar.gz
 #get r info name
@@ -217,7 +217,7 @@ get_pkg() {
 		rm "$name.tar.gz" &>/dev/null
 	fi
 
-	(( $result == 0 )) && \
+	(( result == 0 )) && \
 		msg c "Saved" "$name/" || \
 		msg c "Not Saved" "$name/"
 	
@@ -256,6 +256,9 @@ get_all() {
 
 	while ! (( finished )) ; do
 		finished=1
+
+		local depends
+		local makedepends
 
 		#TODO is this safe?
 		source <(tr '\n' ' ' < "$name/PKGBUILD" | grep -Eo ' (make)?depends=\([^)]*\)' | \
