@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.5.01"
+VE="0.5.02"
 
 #get p url out.tar.gz
 #get r info name
@@ -748,7 +748,7 @@ done
 if [[ $Op ]]; then
 	#disable color if piped to another command
 	[[ ! -t 1 ]] && UseColor=0
-	set_color
+	[[ $TERM  ]] && set_color
 	
 	(( UseSSL )) && Proto="https" || Proto="http"
 
