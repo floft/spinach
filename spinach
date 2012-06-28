@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.5.02"
+VE="0.5.03"
 
 #get p url out.tar.gz
 #get r info name
@@ -49,11 +49,10 @@ msg() {
 
 #set_color
 set_color() {
-	local red=$(tput setaf 1)
-	local green=$(tput setaf 2)
-	local blue=$(tput setaf 4)
-	#local yellow=$(tput setaf 3)
-	local nc=$(tput sgr0)
+	local red=$(tput   setaf 1 2>/dev/null)
+	local green=$(tput setaf 2 2>/dev/null)
+	local blue=$(tput  setaf 4 2>/dev/null)
+	local nc=$(tput    sgr0    2>/dev/null)
 
 	if (( UseColor )); then
 		Color="$red"
@@ -748,7 +747,7 @@ done
 if [[ $Op ]]; then
 	#disable color if piped to another command
 	[[ ! -t 1 ]] && UseColor=0
-	[[ $TERM  ]] && set_color
+	set_color
 	
 	(( UseSSL )) && Proto="https" || Proto="http"
 

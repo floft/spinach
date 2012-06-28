@@ -1,3 +1,5 @@
+0.5.03:
+	* different approach... just send errors to /dev/null
 0.5.02:
 	* only set_color if in a terminal, otherwise tput errors
 0.5.01:
