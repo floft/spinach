@@ -1,3 +1,6 @@
+0.5.05:
+	* when there's a depend problem, don't add it to the list to be installed
+	  (which would then fail and force you to start all over again)
 0.5.04:
 	* added --devel to also update -{bzr,cvs,darcs,git,hg,svn}
 0.5.03:

@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.5.04"
+VE="0.5.05"
 
 #get p url out.tar.gz
 #get r info name
@@ -288,6 +288,9 @@ get_all() {
 					break 1
 				else
 					msg e "Must download dependencies."
+					(( explicit )) && \
+						unset InstallExplicit[$((${#InstallExplicit[@]}-1))] || \
+						unset InstallDepends[$((${#InstallDepends[@]}-1))]
 					return 1
 				fi
 			fi
