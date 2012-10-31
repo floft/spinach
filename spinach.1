@@ -1,4 +1,4 @@
-.TH spinach 1 "2012-08-09" "Spinach 0.5" "Spinach"
+.TH spinach 1 "2012-10-31" "Spinach 0.5" "Spinach"
 .SH NAME
 spinach \- A small AUR helper written in Bash.
 .SH SYNOPSIS
@@ -8,8 +8,6 @@ spinach \- A small AUR helper written in Bash.
 .B spinach
 is a very tiny AUR helper written in Bash that will help you download, install, and update packages from the AUR.
 .SH OPTIONS
-.IP "--[no]ssl"
-Use SSL when downloading packages and information from the AUR. This option has no effect on the pacman operations enabled with the '--rep' option or when using the --aur3 option.
 .IP "--[no]col"
 Use color in certian places.
 .IP "--[no]bat"
@@ -51,10 +49,10 @@ Download all the AUR packages that are older than the one in the AUR to the curr
 .IP "--404"
 List all the foreign packages installed that are not found in the AUR.
 .SH CONFIG (optional)
-.IP "UseSSL=1 UseRepos=1 UseBatch=1 UseColor=1"
-Same as specifying --ssl, --rep, --bat, and --col.
-.IP "UseSSL=0 UseRepos=0 UseBatch=0 UseColor=0"
-Same as specifying --nossl, --norep, --nobat, and --nocol.
+.IP "UseRepos=1 UseBatch=1 UseColor=1"
+Same as specifying --rep, --bat, and --col.
+.IP "UseRepos=0 UseBatch=0 UseColor=0"
+Same as specifying --norep, --nobat, and --nocol.
 .IP "Threads"
 Same as specifying --max number
 .IP "Temp"
@@ -77,11 +75,11 @@ If you have some version-control package (-svn, -git, -hg, etc.) and you want to
 .IP "Spinach Cache"
 When you install or upgrade an application, the build directory in your temporary directory is deleted, but the generated package (if it was successfully created) will be copied to $Temp/spinach/cache/<bunch of text>.pkg.tar.xz. You can set the Spinach Temp directory either in the config file or with the --tmp option.
 .IP "Config versus Options"
-Options specified (e.g. --ssl) will override whatever is in the config file (e.g. UseSSL).
+Options specified (e.g. --col) will override whatever is in the config file (e.g. UseColor).
 .SH EXAMPLES
 spinach --aur3 -u
 .TP
-spinach --nossl -p package1 package2
+spinach --nocol -p package1 package2
 .TP
 source /usr/bin/spinach --col; info spinach
 .TP

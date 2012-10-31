@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.5.05"
+VE="0.5.06"
 
 #get p url out.tar.gz
 #get r info name
@@ -19,7 +19,7 @@ get() {
 		*) return 1;
 	esac
 	
-	local url="$(printf "%s://%s$str" "$Proto" "$host" "$rpc1" "$rpc2")"
+	local url="$(printf "https://%s$str" "$host" "$rpc1" "$rpc2")"
 
 	((print)) && echo "$url" || curl -sfA "$UA" --compressed "$url" -o "$out"
 
@@ -785,7 +785,6 @@ usage() {
 Usage: spinach [options] [operation] [packages]
 
   Options
-    --[no]ssl	Use SSL
     --[no]col	Use Color
     --[no]rep	Use repos
     --[no]bat	Use batch mode
@@ -826,7 +825,6 @@ Current_directory="$(pwd)"
 
 Devel=0
 Needed=0
-UseSSL=0
 UseAUR3=0
 UseRepos=1
 UseColor=1
@@ -840,8 +838,6 @@ config=${XDG_CONFIG_HOME:-$HOME/.config}/spinach/config
 while [[ -n $1 ]]; do
 	case "$1" in
 		#options
-		"--ssl")    UseSSL=1;;
-		"--nossl")  UseSSL=0;;
 		"--col")    UseColor=1;;
 		"--nocol")  UseColor=0;;
 		"--rep")    UseRepos=1;;
@@ -881,8 +877,6 @@ if [[ $Op ]]; then
 	[[ ! -t 1 ]] && UseColor=0
 	set_color
 	
-	(( UseSSL )) && Proto="https" || Proto="http"
-
 	#make absolute
 	[[ -n $Custom && ${Custom:0:1} != / ]] && Custom="$(pwd)/$Custom"
 

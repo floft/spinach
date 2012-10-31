@@ -10,7 +10,6 @@
 # See `man spinach' for more information.
 # 
 
-UseSSL=0
 UseRepos=1
 UseColor=1
 UseBatch=1

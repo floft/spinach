@@ -1,3 +1,5 @@
+0.5.06:
+	* HTTPS is now required since the AUR forwards you to it
 0.5.05:
 	* when there's a depend problem, don't add it to the list to be installed
 	  (which would then fail and force you to start all over again)
