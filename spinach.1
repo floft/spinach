@@ -25,7 +25,7 @@ The absolute path to a directory full of custom PKGBUILDs (in sub directories wi
 .IP "--needed"
 When specified, AUR packages that are already installed on the computer will be skipped when trying to install them.
 .IP "--aur3"
-Download packages from the aur3.org mirror instead of aur.archlinux.org. Useful for when the AUR is down. This doesn't work with --[no]ssl, the output of -s is the same as -sq, and the output of -p isn't prettified.
+Download packages from the aur3.org mirror instead of aur.archlinux.org. Useful for when the AUR is down. The output of -s is the same as -sq, and the output of -p isn't prettified.
 .IP "--devel"
 When used with "-u", also check for updates of -{bzr,cvs,darcs,git,hg,svn} packages. Note that for git and hg it has to clone the latest revision, so it will take a bit of time. However, the purpose is to have it mostly automated with minimal user input, so it will only prompt you to update when needed. This option has no effect on the "-o" operation.
 .SH COMMON OPERATIONS
