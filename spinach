@@ -346,18 +346,19 @@ updates() {
 
 	trap "kill \"\${kill_list[@]}\" &>/dev/null; rm \"$tmp\"_* &>/dev/null; exit 1" 0 2 15
 
-	#get urls
-	local packages="$(pacman -Qmq)"
 	#ignore list, note the space at the end
 	local ignorePkgs="$(grep ^IgnorePkg /etc/pacman.conf | sed -e "s/.*=\ //g") "
 
+	#get urls, and ignore packages in IgnoreList
+	local packages="$(pacman -Qmq | while read -r pkg; do
+			! grep "$pkg " <<< "$ignorePkgs" &>/dev/null && echo $pkg
+		done)"
+
 	for pkg in $packages; do
-		if ! grep "$pkg " <<< "$ignorePkgs"; then
-			[[ -z ${threads[$count]} ]] && \
-				threads[$count]="$pkg" || \
-				threads[$count]+=",$pkg"
-			(( count == Threads-1 )) && count=0 || (( ++count ))
-		fi
+		[[ -z ${threads[$count]} ]] && \
+			threads[$count]="$pkg" || \
+			threads[$count]+=",$pkg"
+		(( count == Threads-1 )) && count=0 || (( ++count ))
 	done
 
 	#create threads
