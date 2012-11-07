@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.5.06"
+VE="0.5.07"
 
 #get p url out.tar.gz
 #get r info name
@@ -154,7 +154,7 @@ search() {
 			jshon -QC -e results -a -e Name -u -p -e OutOfDate -u -p -e Description -u  | \
 			paste -s -d " :\n" | sed -r '
 			s/^([^:]*) 0:/\1: /g
-			s/^([^:]*) 1:/\1 *: /g
+			s/^([^:]*) [0-9]+:/\1 *: /g
 			' | sort | color
 	fi
 
@@ -348,11 +348,16 @@ updates() {
 
 	#get urls
 	local packages="$(pacman -Qmq)"
+	#ignore list, note the space at the end
+	local ignorePkgs="$(grep ^IgnorePkg /etc/pacman.conf | sed -e "s/.*=\ //g") "
+
 	for pkg in $packages; do
-		[[ -z ${threads[$count]} ]] && \
-			threads[$count]="$pkg" || \
-			threads[$count]+=",$pkg"
-		(( count == Threads-1 )) && count=0 || (( ++count ))
+		if ! grep "$pkg " <<< "$ignorePkgs"; then
+			[[ -z ${threads[$count]} ]] && \
+				threads[$count]="$pkg" || \
+				threads[$count]+=",$pkg"
+			(( count == Threads-1 )) && count=0 || (( ++count ))
+		fi
 	done
 
 	#create threads
@@ -657,7 +662,7 @@ mk_pkg() {
 	while true; do
 		if makepkg; then
 			[[ -d pkg/usr/bin ]] && for i in pkg/usr/bin/*; do
-				[[ -f $i ]] && UserBin+=("${i//*\//}")
+				[[ -f $i ]] && UsrBin+=("${i//*\//}")
 			done
 
 			rm -rf src/ pkg/

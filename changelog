@@ -1,3 +1,7 @@
+0.5.07:
+	* fixed typo essencially adding back "/usr/bin/blah has been updated"
+	* added back in IgnorePkg from /etc/pacman.conf support
+	* fixed some search errors which outputed date instead of * for OutOfDate
 0.5.06:
 	* HTTPS is now required since the AUR forwards you to it
 0.5.05:
