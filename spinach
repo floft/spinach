@@ -1,27 +1,36 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.5.07"
+VE="0.5.08"
 
 #get p url out.tar.gz
 #get r info name
 #get r search name
+#get rm name1 name2 name3 name4
 #curl $(get rp type arg)
 get() {
-	local str out rpc1 rpc2
-	local print=0;
+	local str out rpc1 rpc2 url
+	local print=0
+	local multi=0
 	local host="aur.archlinux.org"
 	local rpc="/rpc.php?type=%s&arg=%s"
+	local multiinfo="/rpc.php?type=multiinfo" #&arg[]=&arg[]=...
 
 	case "$1" in
-		p) str="$2%s%s"; out="$3";;
-		r) str="$rpc";   out="-"; rpc1="$2"; rpc2="$3";;
-		rp) str="$rpc";  out="-"; rpc1="$2"; rpc2="$3"; print=1;;
+		p)  str="$2%s%s"; out="$3";;
+		r)  str="$rpc";   out="-"; rpc1="$2"; rpc2="$3";;
+		rp) str="$rpc";   out="-"; rpc1="$2"; rpc2="$3"; print=1;;
+		rm) multi=1; print=1;;
 		*) return 1;
 	esac
 	
-	local url="$(printf "https://%s$str" "$host" "$rpc1" "$rpc2")"
-
-	((print)) && echo "$url" || curl -sfA "$UA" --compressed "$url" -o "$out"
+	if (( multi )); then
+		shift #get rid of "rm" option
+		local args="$(printf "&arg[]=%s" "$@")"
+		echo "$(printf "https://%s${multiinfo}%s" "$host" "$args")"
+	else
+		url="$(printf "https://%s$str" "$host" "$rpc1" "$rpc2")"
+		((print)) && echo "$url" || curl -sfA "$UA" --compressed "$url" -o "$out"
+	fi
 
 	return $?
 }
@@ -68,8 +77,7 @@ set_color() {
 
 #command | color
 color() {
-	[[ $Color ]] && cat | sed -r 's/^([^: \t]+[^:]*): +/\'$Color'\1\'$NoColor': /g' | \
-		xargs -0 echo -en || cat
+	[[ $Color ]] && echo -e "$(cat | sed -r 's/^([^: \t]+[^:]*): +/\'$Color'\1\'$NoColor': /g')" || cat
 	
 	return 0
 }
@@ -123,11 +131,12 @@ run_pacman() {
 #search v name
 #search q name
 search() {
+	local repo
 	local verbosity="$1"
 	local query="$2"
 		
 	if (( UseAUR3 )); then
-		(( UseRepos )) && pacman -Ssq "$query"
+		(( UseRepos )) && expac "%n" -Ss "$query"
 
 		trap 'exec 3<&-' 2 15
 
@@ -143,12 +152,11 @@ search() {
 	fi
 
 	if [[ $verbosity == q ]]; then
-		(( UseRepos )) && pacman -Ssq "$query"
+		(( UseRepos )) && expac "%n" -Ss "$query"
 		get r search "$query" | jshon -QC -e results -a -e Name -u
 	else
-		(( UseRepos)) && pacman -Ss "$query" | \
-		sed -r 's/^([^/\s]+\/[^ ]+) [^\n]+$/\1/g' | \
-		sed -rn '1h;1!H;${;g;s/\n\s+/: /g;p;}' | color
+		(( UseRepos )) && repo="$(expac "%r/%n: %d" -Ss "$query")"
+		[[ -n $repo ]] && color <<< "$repo"
 		
 		get r search "$query" | \
 			jshon -QC -e results -a -e Name -u -p -e OutOfDate -u -p -e Description -u  | \
@@ -264,18 +272,14 @@ get_all() {
 		local depends
 		local makedepends
 
-		#TODO is this safe?
 		source <(tr '\n' ' ' < "$name/PKGBUILD" | grep -Eo ' (make)?depends=\([^)]*\)' | \
-			sed -r "s/(['\"])([^><='\"]*)[><=]+[^'\"]*\1/\1\2\1/g")
+			sed -r "s/(['\"])([^><='\"]*)[><=]+[^'\"]*\1/\1\2\1/g" | devel_clean)
 		
 		local deps="$(pacman -T ${depends[*]} ${makedepends[*]} | tr '\n' ' ')"
 
 		local provide=""
 
-		[[ -n $deps ]] && provide="$(pacman -Si $(pacman -Ssq "^($(tr ' ' '|' <<< "$deps"))$" || echo -h) | \
-			grep -E "^(Name|Provides)" | sed '
-			s/^[^:]*: //g
-			s/=[^ ]*//g' | tr ' ' '\n')"
+		[[ -n $deps ]] && provide="$(expac "%n\n%S" -S $deps | tr ' ' '\n')"
 
 		for dep in $deps; do
 			grep -q "^$dep$" <<< "$provide" && InstallPacman+=("$dep") && continue
@@ -357,14 +361,27 @@ updates() {
 	for pkg in $packages; do
 		[[ -z ${threads[$count]} ]] && \
 			threads[$count]="$pkg" || \
-			threads[$count]+=",$pkg"
+			threads[$count]+=" $pkg"
 		(( count == Threads-1 )) && count=0 || (( ++count ))
 	done
 
 	#create threads
 	count=0
-	for pkg in "${threads[@]}"; do
-		curl -sfA "$UA" --compressed "$info{$pkg}" -o "${tmp}_${count}_#1" &>/dev/null &
+	for pkgs in "${threads[@]}"; do
+		if (( UseAUR3 )); then
+			{
+				curl -sfA "$UA" --compressed "$info{$pkgs}" 2>/dev/null | \
+				jshon -QC -e name -u -p -e pkgver -u -p -e pkgrel -u | \
+				paste -sd '\t-\n'
+			} > "$tmp"_"$count" &
+		else
+			{
+				curl -gsfA "$UA" --compressed "$(get rm $pkgs)" 2>/dev/null |  \
+				jshon -QC -e results -a -e Name -u -p -e Version -u | \
+				paste -sd '\t\n'
+			} > "$tmp"_"$count" &
+		fi
+
 		kill_list+=("$!")
 		(( ++count ))
 	done
@@ -372,22 +389,11 @@ updates() {
 	#wait
 	thread_wait
 
-	#parse AUR versions
-	local aur=()
-	while read -r file; do
-		(( UseAUR3 )) && \
-			aur+=("$(jshon -QC -e name -u -p -e pkgver -u -p -e pkgrel -u < "$file" | paste -sd '\t-\n')") || \
-			aur+=("$(jshon -QC -e results -e Name -u -p -e Version -u < "$file" | paste -sd '\t\n')")
-		rm "$file"
-	done < <(ls "$tmp"_* 2>/dev/null)
-	
-	trap - 0 2 15
-
 	#parse local versions
-	local pacman="$(pacman -Qi $packages | grep -E "^(Name|Version)" | sed 's/^.[^:]*: //g')"
+	local pacman="$(expac "%n\n%v" $packages)"
 
 	#compare
-	for pkg in "${aur[@]}"; do
+	while read -r pkg; do 
 		local name="$(cut -f1 <<< "$pkg")"
 		local aur="$(cut -f2 <<< "$pkg")"				#AUR version
 		local loc="$(grep -A 1 "^$name$" <<< "$pacman" | tail -n 1)"	#local version
@@ -397,7 +403,10 @@ updates() {
 			printf "${Color}%s${NoColor} (${UpdateOld}%s${NoColor} => ${UpdateNew}%s${NoColor})\n" \
 				"$name" "$loc" "$aur" >&2
 		fi
-	done
+	done < <(cat "$tmp"_* 2>/dev/null)
+
+	rm "$tmp"_*
+	trap - 0 2 15
 }
 
 # eval $(devel_clean <<< input)
@@ -431,7 +440,7 @@ updates_devel() {
 
 	while read -r pkg; do
 		packages+=("$pkg")
-	done < <(pacman -Qqs | grep -E "\-(bzr|cvs|darcs|git|hg|svn)$")
+	done < <(expac "%n" | grep -E "\-(bzr|cvs|darcs|git|hg|svn)$")
 
 	for pkg in "${packages[@]}"; do
 		unset current latest
@@ -491,7 +500,7 @@ updates_devel() {
 				sed -n 's/^Last Changed Rev: \([0-9]*\)$/\1/p')"
 		fi
 
-		current="$(pacman -Qi "$pkg" | sed -n 's/^Version\ \+: \([^-]\+\)-[0-9]\+$/\1/p')"
+		current="$(expac "%v" "$pkg")"
 
 		if [[ $latest ]]; then
 			if (( latest > current )); then
@@ -524,8 +533,7 @@ install_pkg() {
 	trap "touch \"$Tmp/$KillSudov\"; clean; wait; rm \"$Tmp/$KillSudov\"; echo; exit 1" 2 15
 
 	for pkg; do
-		if (( UseRepos )) && { pacman -Si "$pkg" &>/dev/null || \
-			(( $(pacman -Sgq "$pkg" 2>/dev/null | wc -l) )); }; then
+		if (( UseRepos )) && { expac "%n" -S1 "$pkg" || expac "%n" -Sg "$pkg"; } &>/dev/null; then
 			installRepo+=("$pkg")
 		else
 			if ! (( Needed )) || ! pacman -Qi "$pkg" &>/dev/null; then
