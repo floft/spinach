@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.5.08"
+VE="0.5.09"
 
 #get p url out.tar.gz
 #get r info name
@@ -314,7 +314,7 @@ notfound() {
 			curl -sfA "$UA" "http://aur3.org/rpc/$pkg" &>/dev/null || msg c "Not found" "$pkg" &
 			thread_list+=("$!")
 		else
-			get r info "$pkg" | grep "No result" &>/dev/null && msg c "Not found" "$pkg" &
+			(( $(get r info "$pkg" | jshon -e resultcount) == 0 )) && msg c "Not found" "$pkg" &
 			thread_list+=("$!")
 		fi
 
