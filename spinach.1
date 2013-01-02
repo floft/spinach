@@ -1,4 +1,4 @@
-.TH spinach 1 "2012-10-31" "Spinach 0.5" "Spinach"
+.TH spinach 1 "2013-01-02" "Spinach 0.5" "Spinach"
 .SH NAME
 spinach \- A small AUR helper written in Bash.
 .SH SYNOPSIS
@@ -76,6 +76,8 @@ If you have some version-control package (-svn, -git, -hg, etc.) and you want to
 When you install or upgrade an application, the build directory in your temporary directory is deleted, but the generated package (if it was successfully created) will be copied to $Temp/spinach/cache/<bunch of text>.pkg.tar.xz. You can set the Spinach Temp directory either in the config file or with the --tmp option.
 .IP "Config versus Options"
 Options specified (e.g. --col) will override whatever is in the config file (e.g. UseColor).
+.IP "/tmp with noexec"
+If you have your temporary directory TMPDIR mounted with noexec, you'll get permission denied errors when running makepkg. Thus, you'll need to specify a different tmp directory either with --tmp or in the config file.
 .SH EXAMPLES
 spinach --aur3 -u
 .TP
