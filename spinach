@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.5.09"
+VE="0.5.10"
 
 #get p url out.tar.gz
 #get r info name
@@ -846,8 +846,13 @@ UseBatch=1
 
 #defaults from config
 config=${XDG_CONFIG_HOME:-$HOME/.config}/spinach/config
+configEtc=/etc/spinach.conf
 
-[[ -e $config ]] && source "$config"
+if [[ -e $config ]]; then
+    source "$config"
+elif [[ -e $configEtc ]]; then
+    source "$configEtc"
+fi
 
 while [[ -n $1 ]]; do
 	case "$1" in

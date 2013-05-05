@@ -1,4 +1,4 @@
-.TH spinach 1 "2013-01-02" "Spinach 0.5" "Spinach"
+.TH spinach 1 "2013-05-04" "Spinach 0.5" "Spinach"
 .SH NAME
 spinach \- A small AUR helper written in Bash.
 .SH SYNOPSIS
@@ -48,7 +48,8 @@ List packages that are older than the one in the AUR.
 Download all the AUR packages that are older than the one in the AUR to the current directory.
 .IP "--404"
 List all the foreign packages installed that are not found in the AUR.
-.SH CONFIG (optional)
+.SH CONFIG
+The default system-wide configuration file is in /etc/spinach.conf. In a multi-user environment, you can copy spinach.conf to ~/.config/spinach/config which will override the system settings. Below are the available options for the config file.
 .IP "UseRepos=1 UseBatch=1 UseColor=1"
 Same as specifying --rep, --bat, and --col.
 .IP "UseRepos=0 UseBatch=0 UseColor=0"
