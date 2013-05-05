@@ -1,6 +1,6 @@
 # 
-# This is an optional spinach config file. If you want to use it, 
-# place this example config in either:
+# This is an optional spinach config file. You can either change system-wide
+# settings here or set user-specific settings by placing this in either:
 # 	$XDG_CONFIG_HOME/spinach/config or
 # 	$HOME/.config/spinach/config
 #
@@ -10,7 +10,7 @@
 # See `man spinach' for more information.
 # 
 
-UseRepos=1
+UseRepos=0
 UseColor=1
 UseBatch=1
 
