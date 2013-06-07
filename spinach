@@ -411,7 +411,6 @@ updates() {
 
 # eval $(devel_clean <<< input)
 devel_clean() {
-	# remove $(echo cow), `echo cow`, and "; echo cow"
 	cat | sed -r 's/\$\([^)]+\)//g
 	s/`[^`]+`//g
 	s/;.*//g'
