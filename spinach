@@ -2,107 +2,107 @@
 UA="Spinach"
 VE="0.5.11"
 
-#get p url out.tar.gz
-#get r info name
-#get r search name
-#get rm name1 name2 name3 name4
-#curl $(get rp type arg)
+# get p url out.tar.gz
+# get r info name
+# get r search name
+# get rm name1 name2 name3 name4
+# curl $(get rp type arg)
 get() {
-	local str out rpc1 rpc2 url
-	local print=0
-	local multi=0
-	local host="aur.archlinux.org"
-	local rpc="/rpc.php?type=%s&arg=%s"
-	local multiinfo="/rpc.php?type=multiinfo" #&arg[]=&arg[]=...
+    local str out rpc1 rpc2 url
+    local print=0
+    local multi=0
+    local host="aur.archlinux.org"
+    local rpc="/rpc.php?type=%s&arg=%s"
+    local multiinfo="/rpc.php?type=multiinfo" #&arg[]=&arg[]=...
 
-	case "$1" in
-		p)  str="$2%s%s"; out="$3";;
-		r)  str="$rpc";   out="-"; rpc1="$2"; rpc2="$3";;
-		rp) str="$rpc";   out="-"; rpc1="$2"; rpc2="$3"; print=1;;
-		rm) multi=1; print=1;;
-		*) return 1;
-	esac
-	
-	if (( multi )); then
-		shift #get rid of "rm" option
-		local args="$(printf "&arg[]=%s" "$@")"
-		echo "$(printf "https://%s${multiinfo}%s" "$host" "$args")"
-	else
-		url="$(printf "https://%s$str" "$host" "$rpc1" "$rpc2")"
-		((print)) && echo "$url" || curl -sfA "$UA" --compressed "$url" -o "$out"
-	fi
+    case "$1" in
+        p)  str="$2%s%s"; out="$3";;
+        r)  str="$rpc";   out="-"; rpc1="$2"; rpc2="$3";;
+        rp) str="$rpc";   out="-"; rpc1="$2"; rpc2="$3"; print=1;;
+        rm) multi=1; print=1;;
+        *) return 1;
+    esac
 
-	return $?
+    if (( multi )); then
+        shift # get rid of "rm" option
+        local args="$(printf "&arg[]=%s" "$@")"
+        echo "$(printf "https://%s${multiinfo}%s" "$host" "$args")"
+    else
+        url="$(printf "https://%s$str" "$host" "$rpc1" "$rpc2")"
+        ((print)) && echo "$url" || curl -sfA "$UA" --compressed "$url" -o "$out"
+    fi
+
+    return $?
 }
 
-#msg e error
-#msg n notice
-#msg w warning
-#msg c prefix message
+# msg e error
+# msg n notice
+# msg w warning
+# msg c prefix message
 msg() {
-	local txt="$2"
-	local prefix=""
+    local txt="$2"
+    local prefix=""
 
-	case "$1" in
-		e) prefix="Error";;
-		n) prefix="Notice";;
-		w) prefix="Warning";;
-		c) prefix="$2"; txt="$3";;
-		*) return 1;;
-	esac
-	
-	printf "${Color}%s${NoColor}: %s\n" "$prefix" "$txt" >&2
+    case "$1" in
+        e) prefix="Error";;
+        n) prefix="Notice";;
+        w) prefix="Warning";;
+        c) prefix="$2"; txt="$3";;
+        *) return 1;;
+    esac
 
-	return 0
+    printf "${Color}%s${NoColor}: %s\n" "$prefix" "$txt" >&2
+
+    return 0
 }
 
-#set_color
+# set_color
 set_color() {
-	local red=$(tput   setaf 1 2>/dev/null)
-	local green=$(tput setaf 2 2>/dev/null)
-	local blue=$(tput  setaf 4 2>/dev/null)
-	local nc=$(tput    sgr0    2>/dev/null)
+    local red=$(tput   setaf 1 2>/dev/null)
+    local green=$(tput setaf 2 2>/dev/null)
+    local blue=$(tput  setaf 4 2>/dev/null)
+    local nc=$(tput    sgr0    2>/dev/null)
 
-	if (( UseColor )); then
-		Color="$red"
-		UpdateOld="$blue"
-		UpdateNew="$green"
-		NoColor="$nc"
-	else
-		unset Color NoColor UpdateOld UpdateNew
-	fi
+    if (( UseColor )); then
+        Color="$red"
+        UpdateOld="$blue"
+        UpdateNew="$green"
+        NoColor="$nc"
+    else
+        unset Color NoColor UpdateOld UpdateNew
+    fi
 
-	return 0
+    return 0
 }
 
-#command | color
+# command | color
 color() {
-	[[ $Color ]] && echo -e "$(cat | sed -r 's/^([^: \t]+[^:]*): +/\'$Color'\1\'$NoColor': /g')" || cat
-	
-	return 0
+    [[ $Color ]] && echo -e "$(cat | sed -r 's/^([^: \t]+[^:]*): +/\'$Color'\1\'$NoColor': /g')" || cat
+
+    return 0
 }
 
-#ask "really?" || break
+# ask "really?" || break
 ask() {
-	local response
-	local question="$1"
+    local response
+    local question="$1"
 
-	while [[ $response != y && $response != n ]]; do
-		printf "${Color}y/n${NoColor}: %s " "$question" >&2
-		read -r response
-	done
+    while [[ $response != y && $response != n ]]; do
+        printf "${Color}y/n${NoColor}: %s " "$question" >&2
+        read -r response
+    done
 
-	[[ $response == y ]] && return 0
-	[[ $response == n ]] && return 1
+    [[ $response == y ]] && return 0
+    [[ $response == n ]] && return 1
 }
 
-#preview name
+# preview name
 preview() {
-	local name="$1"
-	local question=${2:-View}
+    local name="$1"
+    local question=${2:-View}
 
-	if ask "${question} ${name}?"; then
-		"$EDITOR" "PKGBUILD"
+    if ask "${question} ${name}?"; then
+        "$EDITOR" "PKGBUILD"
 
         if grep '^install=' "PKGBUILD" &>/dev/null; then
             install_file="$(grep '^install=' "PKGBUILD" | cut -d= -f2 | tr -d "'\"")"
@@ -116,729 +116,729 @@ preview() {
                 msg c "..." "$(pwd)"
             fi
         fi
-	fi
+    fi
 
-	ask "Install $name?"
-	return $?
+    ask "Install $name?"
+    return $?
 }
 
-#run_pacman -S something
+# run_pacman -S something
 run_pacman() {
-	while true; do
-		if type sudo &>/dev/null; then
-			msg c "Running" "sudo pacman $*"
-			sudo pacman "$@"
-		else
-			msg c "Running" "su root -c pacman $*"
-			su root -c pacman "$@"
-		fi
+    while true; do
+        if type sudo &>/dev/null; then
+            msg c "Running" "sudo pacman $*"
+            sudo pacman "$@"
+        else
+            msg c "Running" "su root -c pacman $*"
+            su root -c pacman "$@"
+        fi
 
-		(( $? == 0 )) && return 0
-		ask "Try again?" || return 1
-	done
+        (( $? == 0 )) && return 0
+        ask "Try again?" || return 1
+    done
 }
 
-#search v name
-#search q name
+# search v name
+# search q name
 search() {
-	local repo
-	local verbosity="$1"
-	local query="$2"
-		
-	if (( UseAUR3 )); then
-		(( UseRepos )) && expac "%n" -Ss "$query"
+    local repo
+    local verbosity="$1"
+    local query="$2"
 
-		trap 'exec 3<&-' 2 15
+    if (( UseAUR3 )); then
+        (( UseRepos )) && expac "%n" -Ss "$query"
 
-		exec 3<>/dev/tcp/aur3.org/1819
-		echo "nd $query" >&3
-		cat <&3
-		exec 3<&-
-		echo
+        trap 'exec 3<&-' 2 15
 
-		trap - 2 15
+        exec 3<>/dev/tcp/aur3.org/1819
+        echo "nd $query" >&3
+        cat <&3
+        exec 3<&-
+        echo
 
-		return 0
-	fi
+        trap - 2 15
 
-	if [[ $verbosity == q ]]; then
-		(( UseRepos )) && expac "%n" -Ss "$query"
-		get r search "$query" | jshon -QC -e results -a -e Name -u
-	else
-		(( UseRepos )) && repo="$(expac "%r/%n: %d" -Ss "$query")"
-		[[ -n $repo ]] && color <<< "$repo"
-		
-		get r search "$query" | \
-			jshon -QC -e results -a -e Name -u -p -e OutOfDate -u -p -e Description -u  | \
-			paste -s -d " :\n" | sed -r '
-			s/^([^:]*) 0:/\1: /g
-			s/^([^:]*) [0-9]+:/\1 *: /g
-			' | sort | color
-	fi
+        return 0
+    fi
 
-	return 0
+    if [[ $verbosity == q ]]; then
+        (( UseRepos )) && expac "%n" -Ss "$query"
+        get r search "$query" | jshon -QC -e results -a -e Name -u
+    else
+        (( UseRepos )) && repo="$(expac "%r/%n: %d" -Ss "$query")"
+        [[ -n $repo ]] && color <<< "$repo"
+
+        get r search "$query" | \
+            jshon -QC -e results -a -e Name -u -p -e OutOfDate -u -p -e Description -u  | \
+            paste -s -d " :\n" | sed -r '
+            s/^([^:]*) 0:/\1: /g
+            s/^([^:]*) [0-9]+:/\1 *: /g
+            ' | sort | color
+    fi
+
+    return 0
 }
 
-#info query
+# info query
 info() {
-	local info gotinfo
-	local query="$1"
-	
-	if (( UseRepos )); then
-		info="$(pacman -Si "$query" 2>/dev/null)"
-		gotinfo=$?
+    local info gotinfo
+    local query="$1"
 
-		[[ $info ]] && color <<< "$info"
-	fi
+    if (( UseRepos )); then
+        info="$(pacman -Si "$query" 2>/dev/null)"
+        gotinfo=$?
 
-	if ! (( UseRepos )) || (( gotinfo )); then
-		(( UseAUR3 )) && \
-			curl -sfA "$UA" "http://aur3.org/rpc/$query" | jshon || \
-			get r info "$query" | jshon -QC -e results | \
-				tail -n +2 | head -n -1 | sed -r '
-				s/^ "//g
-				s/": "?/: /g
-				s/"?,?$//g
-				s/^URLPath: /URLPath: https:\/\/aur.archlinux.org/g' | color
-	fi
-	
-	return 0
+        [[ $info ]] && color <<< "$info"
+    fi
+
+    if ! (( UseRepos )) || (( gotinfo )); then
+        (( UseAUR3 )) && \
+            curl -sfA "$UA" "http://aur3.org/rpc/$query" | jshon || \
+            get r info "$query" | jshon -QC -e results | \
+                tail -n +2 | head -n -1 | sed -r '
+                s/^ "//g
+                s/": "?/: /g
+                s/"?,?$//g
+                s/^URLPath: /URLPath: https:\/\/aur.archlinux.org/g' | color
+    fi
+
+    return 0
 }
 
-#get_pkg name [ignore]
+# get_pkg name [ignore]
 get_pkg() {
-	local url
-	local result=0
-	local name="$1"
-	local ignore=$2
-	(( UseAUR3 )) && \
-		url="$(curl -sfA "$UA" "http://aur3.org/rpc/$name" | jshon -e targz -u)" || \
-		url="$(get r info "$name" | jshon -QC -e results -e URLPath -u)"
+    local url
+    local result=0
+    local name="$1"
+    local ignore=$2
+    (( UseAUR3 )) && \
+        url="$(curl -sfA "$UA" "http://aur3.org/rpc/$name" | jshon -e targz -u)" || \
+        url="$(get r info "$name" | jshon -QC -e results -e URLPath -u)"
 
-	[[ -z $ignore ]] && ignore=0
+    [[ -z $ignore ]] && ignore=0
 
-	if [[ -e $name ]]; then
-		if (( ignore )); then
-			return 0
-		else
-			msg e "$name/ exists"
-			return 1
-		fi
-	fi
+    if [[ -e $name ]]; then
+        if (( ignore )); then
+            return 0
+        else
+            msg e "$name/ exists"
+            return 1
+        fi
+    fi
 
-	if [[ -n $Custom && -e $Custom/$name/PKGBUILD ]]; then
-		msg n "Using PKGBUILD from $Custom"
-		cp -r "$Custom/$name" ./
-		result=$?
-	else
-		(( UseAUR3 )) && \
-			curl -sfA "$UA" "$url" -o "$name.tar.gz" || \
-			get p "$url" "$name.tar.gz"
-		tar xzf "$name.tar.gz" &>/dev/null
-		result=$?
-		rm "$name.tar.gz" &>/dev/null
-	fi
+    if [[ -n $Custom && -e $Custom/$name/PKGBUILD ]]; then
+        msg n "Using PKGBUILD from $Custom"
+        cp -r "$Custom/$name" ./
+        result=$?
+    else
+        (( UseAUR3 )) && \
+            curl -sfA "$UA" "$url" -o "$name.tar.gz" || \
+            get p "$url" "$name.tar.gz"
+        tar xzf "$name.tar.gz" &>/dev/null
+        result=$?
+        rm "$name.tar.gz" &>/dev/null
+    fi
 
-	(( result == 0 )) && \
-		msg c "Saved" "$name/" || \
-		msg c "Not Saved" "$name/"
-	
-	return $result
+    (( result == 0 )) && \
+        msg c "Saved" "$name/" || \
+        msg c "Not Saved" "$name/"
+
+    return $result
 }
 
-#get_all name
+# get_all name
 get_all() {
-	local dep 
-	local result=0
-	local name="$1"
-	local explicit=$2
+    local dep
+    local result=0
+    local name="$1"
+    local explicit=$2
 
-	[[ -z $explicit ]] && explicit=1
+    [[ -z $explicit ]] && explicit=1
 
-	if (( explicit && ! Devel )); then #if devel, already downloaded packages
-		[[ -e $name ]]  && { msg n "already downloaded $name/"; return 1; }
-		get_pkg "$name" || { msg e "could not download $name";  return 1; }
-	else
-		get_pkg "$name" 1 || { msg e "could not download $name";  return 1; }
-	fi
+    if (( explicit && ! Devel )); then # if devel, already downloaded packages
+        [[ -e $name ]]  && { msg n "already downloaded $name/"; return 1; }
+        get_pkg "$name" || { msg e "could not download $name";  return 1; }
+    else
+        get_pkg "$name" 1 || { msg e "could not download $name";  return 1; }
+    fi
 
-	Downloaded+=("$name")
-	(( explicit )) && \
-		InstallExplicit+=("$name") || \
-		InstallDepends+=("$name")
-	
-	[[ -e $name/PKGBUILD ]] || { msg e "$name/PKGBUILD does not exist"; return 1; }
+    Downloaded+=("$name")
+    (( explicit )) && \
+        InstallExplicit+=("$name") || \
+        InstallDepends+=("$name")
 
-	grep sudo "$name/PKGBUILD" &>/dev/null && \
-		msg w "The characters 'sudo' are in the PKGBUILD."
-	grep sudo "$name/"*.install &>/dev/null && \
-		msg w "The characters 'sudo' are in the install file."
+    [[ -e $name/PKGBUILD ]] || { msg e "$name/PKGBUILD does not exist"; return 1; }
 
-	local finished=0;
+    grep sudo "$name/PKGBUILD" &>/dev/null && \
+        msg w "The characters 'sudo' are in the PKGBUILD."
+    grep sudo "$name/"*.install &>/dev/null && \
+        msg w "The characters 'sudo' are in the install file."
 
-	while ! (( finished )) ; do
-		finished=1
+    local finished=0;
 
-		local depends
-		local makedepends
+    while ! (( finished )) ; do
+        finished=1
 
-		source <(tr '\n' ' ' < "$name/PKGBUILD" | grep -Eo ' (make)?depends=\([^)]*\)' | \
-			sed -r "s/(['\"])([^><='\"]*)[><=]+[^'\"]*\1/\1\2\1/g" | devel_clean)
-		
-		local deps="$(pacman -T ${depends[*]} ${makedepends[*]} | tr '\n' ' ')"
+        local depends
+        local makedepends
 
-		local provide=""
+        source <(tr '\n' ' ' < "$name/PKGBUILD" | grep -Eo ' (make)?depends=\([^)]*\)' | \
+            sed -r "s/(['\"])([^><='\"]*)[><=]+[^'\"]*\1/\1\2\1/g" | devel_clean)
 
-		[[ -n $deps ]] && provide="$(expac "%n\n%S" -S $deps | tr ' ' '\n')"
+        local deps="$(pacman -T ${depends[*]} ${makedepends[*]} | tr '\n' ' ')"
 
-		for dep in $deps; do
-			grep -q "^$dep$" <<< "$provide" && InstallPacman+=("$dep") && continue
-			
-			if ! get_all "$dep" 0; then
-				finished=0
+        local provide=""
 
-				if ask "Modify PKGBUILD for $pkg?"; then
-					"$EDITOR" "$pkg/PKGBUILD"
-					break 1
-				else
-					msg e "Must download dependencies."
-					(( explicit )) && \
-						unset InstallExplicit[$((${#InstallExplicit[@]}-1))] || \
-						unset InstallDepends[$((${#InstallDepends[@]}-1))]
-					return 1
-				fi
-			fi
-		done
-	done
+        [[ -n $deps ]] && provide="$(expac "%n\n%S" -S $deps | tr ' ' '\n')"
+
+        for dep in $deps; do
+            grep -q "^$dep$" <<< "$provide" && InstallPacman+=("$dep") && continue
+
+            if ! get_all "$dep" 0; then
+                finished=0
+
+                if ask "Modify PKGBUILD for $pkg?"; then
+                    "$EDITOR" "$pkg/PKGBUILD"
+                    break 1
+                else
+                    msg e "Must download dependencies."
+                    (( explicit )) && \
+                        unset InstallExplicit[$((${#InstallExplicit[@]}-1))] || \
+                        unset InstallDepends[$((${#InstallDepends[@]}-1))]
+                    return 1
+                fi
+            fi
+        done
+    done
 }
 
-#notfound
+# notfound
 notfound() {
-	local thread_list=()
-	local packages="$(pacman -Qmq)"
+    local thread_list=()
+    local packages="$(pacman -Qmq)"
 
-	trap "for t in \"\${thread_list[@]}\"; do kill \$t &>/dev/null; done; echo; exit 1" 0 2 15
+    trap "for t in \"\${thread_list[@]}\"; do kill \$t &>/dev/null; done; echo; exit 1" 0 2 15
 
-	for pkg in $packages; do
-		if (( UseAUR3 )); then
-			curl -sfA "$UA" "http://aur3.org/rpc/$pkg" &>/dev/null || msg c "Not found" "$pkg" &
-			thread_list+=("$!")
-		else
-			(( $(get r info "$pkg" | jshon -e resultcount) == 0 )) && msg c "Not found" "$pkg" &
-			thread_list+=("$!")
-		fi
+    for pkg in $packages; do
+        if (( UseAUR3 )); then
+            curl -sfA "$UA" "http://aur3.org/rpc/$pkg" &>/dev/null || msg c "Not found" "$pkg" &
+            thread_list+=("$!")
+        else
+            (( $(get r info "$pkg" | jshon -e resultcount) == 0 )) && msg c "Not found" "$pkg" &
+            thread_list+=("$!")
+        fi
 
-		thread_wait $Threads
-	done
-		
-	thread_wait
+        thread_wait $Threads
+    done
 
-	trap - 0 2 15
+    thread_wait
+
+    trap - 0 2 15
 }
 
-#thread_wait $Threads
+# thread_wait $Threads
 thread_wait() {
-	local threads="$1"
-	[[ -z threads ]] && threads=0
+    local threads="$1"
+    [[ -z threads ]] && threads=0
 
-	while (( $(jobs|wc -l) > threads )); do
-		sleep 0.05
-		jobs &>/dev/null
-	done &>/dev/null
+    while (( $(jobs|wc -l) > threads )); do
+        sleep 0.05
+        jobs &>/dev/null
+    done &>/dev/null
 }
 
-#while read -r pkg; do echo $pkg; done < <(updates)
+# while read -r pkg; do echo $pkg; done < <(updates)
 updates() {
-	local pkg file info
-	local count=0
-	local threads=()
-	local kill_list=()
-	local tmp="$(mktemp -u)$$"
-	(( UseAUR3 )) && \
-		info="http://aur3.org/rpc/" || \
-		info="$(get rp info "")"
+    local pkg file info
+    local count=0
+    local threads=()
+    local kill_list=()
+    local tmp="$(mktemp -u)$$"
+    (( UseAUR3 )) && \
+        info="http://aur3.org/rpc/" || \
+        info="$(get rp info "")"
 
     (( UseAUR3 )) && msg n "Using aur3.org mirror, which seems to be out of date"
 
-	trap "kill \"\${kill_list[@]}\" &>/dev/null; rm \"$tmp\"_* &>/dev/null; exit 1" 0 2 15
+    trap "kill \"\${kill_list[@]}\" &>/dev/null; rm \"$tmp\"_* &>/dev/null; exit 1" 0 2 15
 
-	#ignore list, note the space at the end
-	local ignorePkgs="$(grep ^IgnorePkg /etc/pacman.conf | sed -e "s/.*=\ //g") "
+    # ignore list, note the space at the end
+    local ignorePkgs="$(grep ^IgnorePkg /etc/pacman.conf | sed -e "s/.*=\ //g") "
 
-	#get urls, and ignore packages in IgnoreList
-	local packages="$(pacman -Qmq | while read -r pkg; do
-			! grep "$pkg " <<< "$ignorePkgs" &>/dev/null && echo $pkg
-		done)"
+    # get urls, and ignore packages in IgnoreList
+    local packages="$(pacman -Qmq | while read -r pkg; do
+            ! grep "$pkg " <<< "$ignorePkgs" &>/dev/null && echo $pkg
+        done)"
 
-	for pkg in $packages; do
-		[[ -z ${threads[$count]} ]] && \
-			threads[$count]="$pkg" || \
-			threads[$count]+=" $pkg"
-		(( count == Threads-1 )) && count=0 || (( ++count ))
-	done
+    for pkg in $packages; do
+        [[ -z ${threads[$count]} ]] && \
+            threads[$count]="$pkg" || \
+            threads[$count]+=" $pkg"
+        (( count == Threads-1 )) && count=0 || (( ++count ))
+    done
 
-	#create threads
-	count=0
-	for pkgs in "${threads[@]}"; do
-		if (( UseAUR3 )); then
-			{
+    # create threads
+    count=0
+    for pkgs in "${threads[@]}"; do
+        if (( UseAUR3 )); then
+            {
                 # This is pretty.
                 ( echo "[ "; curl -sfA "$UA" --compressed "$info{${pkgs// /,}}" 2>/dev/null | \
                     sed 's/}{/},{/g'; echo " ]" ) | \
                     jshon -QC -a -e name -u -p -e pkgver -u -p -e pkgrel -u | \
                     paste -sd '\t-\n'
-			} > "$tmp"_"$count" &
-		else
-			{
-				curl -gsfA "$UA" --compressed "$(get rm $pkgs)" 2>/dev/null |  \
-				jshon -QC -e results -a -e Name -u -p -e Version -u | \
-				paste -sd '\t\n'
-			} > "$tmp"_"$count" &
-		fi
+            } > "$tmp"_"$count" &
+        else
+            {
+                curl -gsfA "$UA" --compressed "$(get rm $pkgs)" 2>/dev/null |  \
+                jshon -QC -e results -a -e Name -u -p -e Version -u | \
+                paste -sd '\t\n'
+            } > "$tmp"_"$count" &
+        fi
 
-		kill_list+=("$!")
-		(( ++count ))
-	done
+        kill_list+=("$!")
+        (( ++count ))
+    done
 
-	#wait
-	thread_wait
+    # wait
+    thread_wait
 
-	#parse local versions
-	local pacman="$(expac "%n\n%v" $packages)"
+    # parse local versions
+    local pacman="$(expac "%n\n%v" $packages)"
 
-	#compare
-	while read -r pkg; do 
-		local name="$(cut -f1 <<< "$pkg")"
-		local aur="$(cut -f2 <<< "$pkg")"				#AUR version
-		local loc="$(grep -A 1 "^$name$" <<< "$pacman" | tail -n 1)"	#local version
+    # compare
+    while read -r pkg; do
+        local name="$(cut -f1 <<< "$pkg")"
+        local aur="$(cut -f2 <<< "$pkg")" # AUR version
+        local loc="$(grep -A 1 "^$name$" <<< "$pacman" | tail -n 1)" # local version
 
-		if [[ $aur != $loc && -n $loc ]] && (( $(vercmp "$aur" "$loc") > 0 )); then
-			echo "$name"
-			printf "${Color}%s${NoColor} (${UpdateOld}%s${NoColor} => ${UpdateNew}%s${NoColor})\n" \
-				"$name" "$loc" "$aur" >&2
-		fi
-	done < <(cat "$tmp"_* 2>/dev/null)
+        if [[ $aur != $loc && -n $loc ]] && (( $(vercmp "$aur" "$loc") > 0 )); then
+            echo "$name"
+            printf "${Color}%s${NoColor} (${UpdateOld}%s${NoColor} => ${UpdateNew}%s${NoColor})\n" \
+                "$name" "$loc" "$aur" >&2
+        fi
+    done < <(cat "$tmp"_* 2>/dev/null)
 
-	rm "$tmp"_*
-	trap - 0 2 15
+    rm "$tmp"_*
+    trap - 0 2 15
 }
 
 # eval $(devel_clean <<< input)
 devel_clean() {
-	cat | sed -r 's/\$\([^)]+\)//g
-	s/`[^`]+`//g
-	s/;.*//g'
+    cat | sed -r 's/\$\([^)]+\)//g
+    s/`[^`]+`//g
+    s/;.*//g'
 }
 
 # devel_tool hg mercurial || return
 devel_tool() {
-	type "$1" &>/dev/null || run_pacman --needed --asdeps -S "$2"
-	type "$1" &>/dev/null
+    type "$1" &>/dev/null || run_pacman --needed --asdeps -S "$2"
+    type "$1" &>/dev/null
 
-	return $?
+    return $?
 }
 
-#(( Devel )) && updates_devel 3>file && while read -r line; do echo $line; done < file
+# (( Devel )) && updates_devel 3>file && while read -r line; do echo $line; done < file
 updates_devel() {
-	local pkg pkgbuild bzr_txt cvs_txt darcs_txt git_txt hg_txt svn_txt
-	local packages=()
-	Downloaded=()
+    local pkg pkgbuild bzr_txt cvs_txt darcs_txt git_txt hg_txt svn_txt
+    local packages=()
+    Downloaded=()
 
-	editor || return 1
-	mk_tmp || return 1
+    editor || return 1
+    mk_tmp || return 1
 
-	cd "$Build"
+    cd "$Build"
 
-	trap "rm \"$Tmp/update.lock\"; rm \"$DevUpdates\"; clean; exit 1" 2 15
+    trap "rm \"$Tmp/update.lock\"; rm \"$DevUpdates\"; clean; exit 1" 2 15
 
-	while read -r pkg; do
-		packages+=("$pkg")
-	done < <(expac "%n" | grep -E "\-(bzr|cvs|darcs|git|hg|svn)$")
+    while read -r pkg; do
+        packages+=("$pkg")
+    done < <(expac "%n" | grep -E "\-(bzr|cvs|darcs|git|hg|svn)$")
 
-	for pkg in "${packages[@]}"; do
-		unset current latest
+    for pkg in "${packages[@]}"; do
+        unset current latest
 
-		get_pkg "$pkg" || continue
+        get_pkg "$pkg" || continue
 
-		pkgbuild="$Build/$pkg/PKGBUILD"
-		
-		if [[ -e "$pkgbuild" ]]; then
-			Downloaded+=("$pkg")
-		else
-			continue
-			[[ -e "$Build/$pkg" ]] && rm -rf "$Build/$pkg"
-		fi
+        pkgbuild="$Build/$pkg/PKGBUILD"
 
-		bzr_txt="$(grep   -E "^_bzr(trunk|mod)="   "$pkgbuild")"
-		cvs_txt="$(grep   -E "^_cvs(root|mod)="    "$pkgbuild")"
-		git_txt="$(grep   -E "^_git(root|name)="   "$pkgbuild")"
-		hg_txt="$(grep    -E "^_hg(root|repo)="    "$pkgbuild")"
-		svn_txt="$(grep   -E "^_svn(trunk|mod)="   "$pkgbuild")"
-		#darcs_txt="$(grep -E "^_darcs(trunk|mod)=" "$pkgbuild")"
+        if [[ -e "$pkgbuild" ]]; then
+            Downloaded+=("$pkg")
+        else
+            continue
+            [[ -e "$Build/$pkg" ]] && rm -rf "$Build/$pkg"
+        fi
 
-		if [[ $bzr_txt ]]; then
-			devel_tool bzr bzr && eval "$(devel_clean <<< "$bzr_txt")"
+        bzr_txt="$(grep   -E "^_bzr(trunk|mod)="   "$pkgbuild")"
+        cvs_txt="$(grep   -E "^_cvs(root|mod)="    "$pkgbuild")"
+        git_txt="$(grep   -E "^_git(root|name)="   "$pkgbuild")"
+        hg_txt="$(grep    -E "^_hg(root|repo)="    "$pkgbuild")"
+        svn_txt="$(grep   -E "^_svn(trunk|mod)="   "$pkgbuild")"
+        #darcs_txt="$(grep -E "^_darcs(trunk|mod)=" "$pkgbuild")"
 
-			[[ $_bzrtrunk ]] && latest="$(bzr revno "$_bzrtrunk" 2>/dev/null)"
-		elif [[ $cvs_txt ]]; then
-			devel_tool cvs cvs  && eval "$(devel_clean <<< "$cvs_txt")"
+        if [[ $bzr_txt ]]; then
+            devel_tool bzr bzr && eval "$(devel_clean <<< "$bzr_txt")"
 
-			[[ $_cvsroot && $_cvsmod ]] && latest="$(cvs -d "$_cvsroot" rlog "$_cvsmod" 2>/dev/null | \
-				grep -m 1 -E "^head:" | cut -d" " -f2)"
-		elif [[ $git_txt ]]; then
-			devel_tool git git && eval "$(devel_clean <<< "$git_txt")"
+            [[ $_bzrtrunk ]] && latest="$(bzr revno "$_bzrtrunk" 2>/dev/null)"
+        elif [[ $cvs_txt ]]; then
+            devel_tool cvs cvs  && eval "$(devel_clean <<< "$cvs_txt")"
 
-			if [[ $_gitroot && $_gitname && $_gitname != *..* && $_gitname != /* ]]; then
-				mkdir -p "$pkg/src"
-				cd "$pkg/src"
-				git clone --depth 0 "$_gitroot" "$_gitname" 
-				date="$(cd "$_gitname"; git log -n 1 | grep "^Date: " | sed -r 's/Date:\s+//g')"
-				latest="$(date +%Y%m%d -d "$(for i in 2 3 5 4 6; do cut -d" " -f"$i" <<<"$date"; done)")"
-				cd "$Build"
-			fi
-		elif [[ $hg_txt ]]; then
-			devel_tool hg mercurial && eval "$(devel_clean <<< "$hg_txt")"
+            [[ $_cvsroot && $_cvsmod ]] && latest="$(cvs -d "$_cvsroot" rlog "$_cvsmod" 2>/dev/null | \
+                grep -m 1 -E "^head:" | cut -d" " -f2)"
+        elif [[ $git_txt ]]; then
+            devel_tool git git && eval "$(devel_clean <<< "$git_txt")"
 
-			if [[ $_hgroot && $_hgrepo && $_hgrepo != *..* && $_hgrepo != /* ]]; then
-				mkdir -p "$pkg/src"
-				cd "$pkg/src"
-				hg clone "$_hgroot/$_hgrepo" "$_hgrepo"
-				latest="$(cd "$_hgrepo"; hg tip --template "{rev}")"
-				cd "$Build"
-			fi
-		elif [[ $svn_txt ]]; then
-			devel_tool svn subversion && eval "$(devel_clean <<< "$svn_txt")"
+            if [[ $_gitroot && $_gitname && $_gitname != *..* && $_gitname != /* ]]; then
+                mkdir -p "$pkg/src"
+                cd "$pkg/src"
+                git clone --depth 0 "$_gitroot" "$_gitname"
+                date="$(cd "$_gitname"; git log -n 1 | grep "^Date: " | sed -r 's/Date:\s+//g')"
+                latest="$(date +%Y%m%d -d "$(for i in 2 3 5 4 6; do cut -d" " -f"$i" <<<"$date"; done)")"
+                cd "$Build"
+            fi
+        elif [[ $hg_txt ]]; then
+            devel_tool hg mercurial && eval "$(devel_clean <<< "$hg_txt")"
 
-			[[ $_svntrunk ]] && latest="$(LC_ALL=C svn info "$_svntrunk" | \
-				sed -n 's/^Last Changed Rev: \([0-9]*\)$/\1/p')"
-		fi
+            if [[ $_hgroot && $_hgrepo && $_hgrepo != *..* && $_hgrepo != /* ]]; then
+                mkdir -p "$pkg/src"
+                cd "$pkg/src"
+                hg clone "$_hgroot/$_hgrepo" "$_hgrepo"
+                latest="$(cd "$_hgrepo"; hg tip --template "{rev}")"
+                cd "$Build"
+            fi
+        elif [[ $svn_txt ]]; then
+            devel_tool svn subversion && eval "$(devel_clean <<< "$svn_txt")"
 
-		current="$(expac "%v" "$pkg")"
+            [[ $_svntrunk ]] && latest="$(LC_ALL=C svn info "$_svntrunk" | \
+                sed -n 's/^Last Changed Rev: \([0-9]*\)$/\1/p')"
+        fi
 
-		if [[ $latest ]]; then
-			if (( latest > current )); then
-				echo -e "$pkg\t$current\t$latest" >&3
-			fi
-		else
-			echo -e "$pkg\t$current\tunknown" >&3
-		fi
-	done
+        current="$(expac "%v" "$pkg")"
 
-	trap - 2 15
+        if [[ $latest ]]; then
+            if (( latest > current )); then
+                echo -e "$pkg\t$current\t$latest" >&3
+            fi
+        else
+            echo -e "$pkg\t$current\tunknown" >&3
+        fi
+    done
+
+    trap - 2 15
 }
 
-#install_pkg "${packages[@]}"
+# install_pkg "${packages[@]}"
 install_pkg() {
-	editor || return 1
-	mk_tmp || return 1
+    editor || return 1
+    mk_tmp || return 1
 
-	cd "$Build"
+    cd "$Build"
 
-	local pkg
-	local installAur=()
-	local installRepo=()
-	Downloaded=()
-	InstallPacman=()
-	InstallDepends=()
-	InstallExplicit=()
-	
-	trap "touch \"$Tmp/$KillSudov\"; clean; wait; rm \"$Tmp/$KillSudov\"; exit 1" 0
-	trap "touch \"$Tmp/$KillSudov\"; clean; wait; rm \"$Tmp/$KillSudov\"; echo; exit 1" 2 15
+    local pkg
+    local installAur=()
+    local installRepo=()
+    Downloaded=()
+    InstallPacman=()
+    InstallDepends=()
+    InstallExplicit=()
 
-	for pkg; do
-		if (( UseRepos )) && { expac "%n" -S1 "$pkg" || expac "%n" -Sg "$pkg"; } &>/dev/null; then
-			installRepo+=("$pkg")
-		else
-			if ! (( Needed )) || ! pacman -Qi "$pkg" &>/dev/null; then
-				installAur+=("$pkg")
-			fi
-		fi
-	done
+    trap "touch \"$Tmp/$KillSudov\"; clean; wait; rm \"$Tmp/$KillSudov\"; exit 1" 0
+    trap "touch \"$Tmp/$KillSudov\"; clean; wait; rm \"$Tmp/$KillSudov\"; echo; exit 1" 2 15
 
-	if (( ${#installRepo[@]} > 0 )); then
-		(( Needed )) && run_pacman --needed -S "${installRepo[@]}" || \
-				run_pacman          -S "${installRepo[@]}"
-	fi
+    for pkg; do
+        if (( UseRepos )) && { expac "%n" -S1 "$pkg" || expac "%n" -Sg "$pkg"; } &>/dev/null; then
+            installRepo+=("$pkg")
+        else
+            if ! (( Needed )) || ! pacman -Qi "$pkg" &>/dev/null; then
+                installAur+=("$pkg")
+            fi
+        fi
+    done
 
-	build "${installAur[@]}" || return 1
-	
-	touch "$Tmp/$KillSudov"
-	clean
-	wait
-	rm "$Tmp/$KillSudov"
-	trap - 0 2 15
+    if (( ${#installRepo[@]} > 0 )); then
+        (( Needed )) && run_pacman --needed -S "${installRepo[@]}" || \
+                run_pacman          -S "${installRepo[@]}"
+    fi
+
+    build "${installAur[@]}" || return 1
+
+    touch "$Tmp/$KillSudov"
+    clean
+    wait
+    rm "$Tmp/$KillSudov"
+    trap - 0 2 15
 }
 
-#install_updates
+# install_updates
 install_updates() {
-	editor || return 1
-	mk_tmp || return 1
+    editor || return 1
+    mk_tmp || return 1
 
-	cd "$Build"
+    cd "$Build"
 
-	local update pkg
-	local packages=()
-	local upgrade_pkgs=()
-	Downloaded=()
-	InstallPacman=()
-	InstallDepends=()
-	InstallExplicit=()
+    local update pkg
+    local packages=()
+    local upgrade_pkgs=()
+    Downloaded=()
+    InstallPacman=()
+    InstallDepends=()
+    InstallExplicit=()
 
-	[[ -e $Tmp/update.lock ]] && msg e "update lock exists in $Tmp/" && return 1
-	touch "$Tmp/update.lock"
-	
-	if (( Devel )); then
-		DevUpdates="$Tmp/$$.tmp"
-		touch "$DevUpdates"
-		updates_devel 3>"$DevUpdates"
+    [[ -e $Tmp/update.lock ]] && msg e "update lock exists in $Tmp/" && return 1
+    touch "$Tmp/update.lock"
 
-		while read -r update; do
-			pkg="$(cut -f1<<<"$update")"
-			packages+=("$pkg")
-			Downloaded+=("$pkg")
-			printf "${Color}%s${NoColor} (${UpdateOld}%s${NoColor} => ${UpdateNew}%s${NoColor})\n" \
-				"$pkg" "$(cut -f2<<<"$update")" "$(cut -f3<<<"$update")" >&2
-		done < "$DevUpdates"
-		
-		rm "$DevUpdates"
-	fi
-	
-	trap "touch \"$Tmp/$KillSudov\"; clean; rm \"$Tmp/update.lock\" &>/dev/null; wait; rm \"$Tmp/$KillSudov\"; exit 1" 0
-	trap "touch \"$Tmp/$KillSudov\"; clean; rm \"$Tmp/update.lock\" &>/dev/null; wait; rm \"$Tmp/$KillSudov\"; echo; exit 1" 2 15
+    if (( Devel )); then
+        DevUpdates="$Tmp/$$.tmp"
+        touch "$DevUpdates"
+        updates_devel 3>"$DevUpdates"
 
-	while read -r update; do
-		packages+=("$update")
-	done < <(updates)
+        while read -r update; do
+            pkg="$(cut -f1<<<"$update")"
+            packages+=("$pkg")
+            Downloaded+=("$pkg")
+            printf "${Color}%s${NoColor} (${UpdateOld}%s${NoColor} => ${UpdateNew}%s${NoColor})\n" \
+                "$pkg" "$(cut -f2<<<"$update")" "$(cut -f3<<<"$update")" >&2
+        done < "$DevUpdates"
 
-	for pkg in "${packages[@]}"; do
-		ask "Update $pkg?" && upgrade_pkgs+=("$pkg")
-	done
+        rm "$DevUpdates"
+    fi
 
-	build "${upgrade_pkgs[@]}" || return 1
+    trap "touch \"$Tmp/$KillSudov\"; clean; rm \"$Tmp/update.lock\" &>/dev/null; wait; rm \"$Tmp/$KillSudov\"; exit 1" 0
+    trap "touch \"$Tmp/$KillSudov\"; clean; rm \"$Tmp/update.lock\" &>/dev/null; wait; rm \"$Tmp/$KillSudov\"; echo; exit 1" 2 15
 
-	check_running
+    while read -r update; do
+        packages+=("$update")
+    done < <(updates)
 
-	rm "$Tmp/update.lock"
-	touch "$Tmp/$KillSudov"
-	clean
-	wait
-	rm "$Tmp/$KillSudov"
-	trap - 0 2 15
+    for pkg in "${packages[@]}"; do
+        ask "Update $pkg?" && upgrade_pkgs+=("$pkg")
+    done
+
+    build "${upgrade_pkgs[@]}" || return 1
+
+    check_running
+
+    rm "$Tmp/update.lock"
+    touch "$Tmp/$KillSudov"
+    clean
+    wait
+    rm "$Tmp/$KillSudov"
+    trap - 0 2 15
 }
 
-#build package(s) || return 1
+# build package(s) || return 1
 build() {
-	local pkg i PKGEXT
+    local pkg i PKGEXT
 
-	for pkg; do
-		get_all "$pkg"
-	done
+    for pkg; do
+        get_all "$pkg"
+    done
 
-	(( $# == 0 )) 	  		  && return 0 #no packages to install
-	(( ${#InstallExplicit[@]} == 0 )) && return 1 #couldn't find packages
+    (( $# == 0 )) && return 0 # no packages to install
+    (( ${#InstallExplicit[@]} == 0 )) && return 1 # couldn't find packages
 
-	for pkg in "${InstallExplicit[@]}" "${InstallDepends[@]}"; do
-		cd "$pkg"
-		preview "$pkg" || { msg e "not building package. Exiting."; return 1; }
-		cd "$Build"
-	done
+    for pkg in "${InstallExplicit[@]}" "${InstallDepends[@]}"; do
+        cd "$pkg"
+        preview "$pkg" || { msg e "not building package. Exiting."; return 1; }
+        cd "$Build"
+    done
 
-	(( ${#InstallPacman[@]} > 0 )) && \
-		run_pacman --needed --asdeps -S "${InstallPacman[@]}"
+    (( ${#InstallPacman[@]} > 0 )) && \
+        run_pacman --needed --asdeps -S "${InstallPacman[@]}"
 
-	if (( UseBatch )) && type sudo &>/dev/null; then
-		msg c "Running" "sudo -v"
-		if sudo -v; then
-			sudov &
-		else
-			msg n "Falling back to non-batch mode"
-		fi
-	fi
+    if (( UseBatch )) && type sudo &>/dev/null; then
+        msg c "Running" "sudo -v"
+        if sudo -v; then
+            sudov &
+        else
+            msg n "Falling back to non-batch mode"
+        fi
+    fi
 
-	source <(grep ^PKGEXT= /etc/makepkg.conf)
-	[[ -z $PKGEXT ]] && PKGEXT='.pkg.tar.xz'
+    source <(grep ^PKGEXT= /etc/makepkg.conf)
+    [[ -z $PKGEXT ]] && PKGEXT='.pkg.tar.xz'
 
-	for (( i=${#InstallDepends[@]}-1; i >= 0; --i )); do
-		if ! mk_pkg "${InstallDepends[$i]}" "$PKGEXT" 1; then
-			msg e "must build depends. Exiting."
-			return 1
-		fi
-	done
+    for (( i=${#InstallDepends[@]}-1; i >= 0; --i )); do
+        if ! mk_pkg "${InstallDepends[$i]}" "$PKGEXT" 1; then
+            msg e "must build depends. Exiting."
+            return 1
+        fi
+    done
 
-	for pkg in "${InstallExplicit[@]}"; do
-		mk_pkg "$pkg" "$PKGEXT" 0
-	done
+    for pkg in "${InstallExplicit[@]}"; do
+        mk_pkg "$pkg" "$PKGEXT" 0
+    done
 }
 
-#mk_pkg dir PKGEXT depends
+# mk_pkg dir PKGEXT depends
 mk_pkg() {
-	local i PKGEXT asdeps files
-	local pkg="$1"
-	local makepkg_pkgext="$2"
-	local is_depend=$3
+    local i PKGEXT asdeps files
+    local pkg="$1"
+    local makepkg_pkgext="$2"
+    local is_depend=$3
 
-	(( is_depend )) && asdeps="--asdeps"
+    (( is_depend )) && asdeps="--asdeps"
 
-	cd "$pkg"
+    cd "$pkg"
 
-	while true; do
-		if makepkg; then
-			[[ -d pkg/usr/bin ]] && for i in pkg/usr/bin/*; do
-				[[ -f $i ]] && UsrBin+=("${i//*\//}")
-			done
+    while true; do
+        if makepkg; then
+            [[ -d pkg/usr/bin ]] && for i in pkg/usr/bin/*; do
+                [[ -f $i ]] && UsrBin+=("${i//*\//}")
+            done
 
-			rm -rf src/ pkg/
-			break
-		else
-			if ! preview "$pkg" "Correct files for"; then
-				msg e "could not build $pkg"
-				cd "$Build"
-				return 1
-			fi
-		fi
-	done
+            rm -rf src/ pkg/
+            break
+        else
+            if ! preview "$pkg" "Correct files for"; then
+                msg e "could not build $pkg"
+                cd "$Build"
+                return 1
+            fi
+        fi
+    done
 
-	source <(grep ^PKGEXT= PKGBUILD)
-	[[ -z $PKGEXT ]] && PKGEXT="$makepkg_pkgext"
+    source <(grep ^PKGEXT= PKGBUILD)
+    [[ -z $PKGEXT ]] && PKGEXT="$makepkg_pkgext"
 
-	shopt -s nullglob dotglob
-	files=("$Build/$pkg"/*$PKGEXT)
-	shopt -u nullglob dotglob
+    shopt -s nullglob dotglob
+    files=("$Build/$pkg"/*$PKGEXT)
+    shopt -u nullglob dotglob
 
-	if (( ${#files[@]} > 0 )); then
-		if (( UseBatch )); then
-			run_pacman --noconfirm $asdeps -U "${files[@]}"
-		else
-			run_pacman $asdeps -U "${files[@]}"
-		fi
-	fi
+    if (( ${#files[@]} > 0 )); then
+        if (( UseBatch )); then
+            run_pacman --noconfirm $asdeps -U "${files[@]}"
+        else
+            run_pacman $asdeps -U "${files[@]}"
+        fi
+    fi
 
-	for i in "${files[@]}"; do
-		mv "$i" "$Cache/"
-	done
+    for i in "${files[@]}"; do
+        mv "$i" "$Cache/"
+    done
 
-	cd "$Build"
+    cd "$Build"
 }
 
-#find_updates
+# find_updates
 find_updates() {
-	updates >/dev/null
+    updates >/dev/null
 }
 
-#get_updates
+# get_updates
 get_updates() {
-	local update
+    local update
 
-	while read -r update; do
-		get_pkg "$update"
-	done < <(updates)
+    while read -r update; do
+        get_pkg "$update"
+    done < <(updates)
 }
 
-#sudov &
+# sudov &
 sudov() {
-	while [[ ! -e $Tmp/$KillSudov ]]; do
-		sudo -n -v
-		sleep $Sleep
-	done
+    while [[ ! -e $Tmp/$KillSudov ]]; do
+        sudo -n -v
+        sleep $Sleep
+    done
 }
 
-#clean
+# clean
 clean() {
-	local file
-	
-	for file in "${Downloaded[@]}"; do
-		[[ -e $Build/$file ]] && rm -rf "$Build/$file" &>/dev/null
-	done
+    local file
+
+    for file in "${Downloaded[@]}"; do
+        [[ -e $Build/$file ]] && rm -rf "$Build/$file" &>/dev/null
+    done
 }
 
-#check_running
+# check_running
 check_running() {
-	local i
+    local i
 
-	type ps &>/dev/null || return 0
+    type ps &>/dev/null || return 0
 
-	for i in "${UsrBin[@]}"; do
-			if [[ $i != spinach ]] && ps -eo comm 2>/dev/null | grep "$i" &>/dev/null; then
-				msg n "/usr/bin/$i appears to be running and was updated."
-			fi
-	done
+    for i in "${UsrBin[@]}"; do
+            if [[ $i != spinach ]] && ps -eo comm 2>/dev/null | grep "$i" &>/dev/null; then
+                msg n "/usr/bin/$i appears to be running and was updated."
+            fi
+    done
 }
 
-#editor || return 1
+# editor || return 1
 editor() {
-	local i
+    local i
 
-	[[ -n $EDITOR ]] && return 0
+    [[ -n $EDITOR ]] && return 0
 
-	for i in vim emacs vi nano most less more cat; do
-		if type "$i" &>/dev/null; then
-			EDITOR="$i"
-			msg n "No \$EDITOR, using '$i'"
-			break
-		fi
-	done
+    for i in vim emacs vi nano most less more cat; do
+        if type "$i" &>/dev/null; then
+            EDITOR="$i"
+            msg n "No \$EDITOR, using '$i'"
+            break
+        fi
+    done
 
-	[[ -z $EDITOR ]] && msg e "set \$EDITOR" && return 1
+    [[ -z $EDITOR ]] && msg e "set \$EDITOR" && return 1
 
-	return 0
+    return 0
 }
 
-#mk_tmp || return 1
+# mk_tmp || return 1
 mk_tmp() {
-	[[ -z $Temp ]] && Temp=${TMPDIR:-/tmp}
+    [[ -z $Temp ]] && Temp=${TMPDIR:-/tmp}
 
-	Tmp="$Temp/spinach"
-	Build="$Tmp/build"
-	Cache="$Tmp/cache"
+    Tmp="$Temp/spinach"
+    Build="$Tmp/build"
+    Cache="$Tmp/cache"
 
-	if ! mkdir -p "$Tmp" "$Build" "$Cache" &>/dev/null; then
-		msg e "could not create $Tmp"
-		return 1
-	fi
+    if ! mkdir -p "$Tmp" "$Build" "$Cache" &>/dev/null; then
+        msg e "could not create $Tmp"
+        return 1
+    fi
 
-	return 0
+    return 0
 }
 
 blank() {
-	[[ -z $1 ]] && msg e "Please specify at least one package." && exit 1
+    [[ -z $1 ]] && msg e "Please specify at least one package." && exit 1
 }
 
 chkop() {
-	[[ -n $Op ]] && msg e "You can only specify one operation." && exit 1
+    [[ -n $Op ]] && msg e "You can only specify one operation." && exit 1
 }
 
 usage() {
-	cat <<EOF
+    cat <<EOF
 Usage: spinach [options] [operation] [packages]
 
   Options
-    --[no]col	Use Color
-    --[no]rep	Use repos
-    --[no]bat	Use batch mode
-    --max 10	Set max threads
-    --edit vim	Set \$EDITOR
-    --aur3	Use aur3.org mirror
-    --custom ./	Local AUR packages
-    --needed	Only install new packages
-    --devel	Update devel packages
+    --[no]col   Use Color
+    --[no]rep   Use repos
+    --[no]bat   Use batch mode
+    --max 10    Set max threads
+    --edit vim  Set \$EDITOR
+    --aur3      Use aur3.org mirror
+    --custom ./ Local AUR packages
+    --needed    Only install new packages
+    --devel     Update devel packages
 
   Common Operations
-    -s[q] pkg	Search
-    -p    pkg	Print info
-    -i    pkg	Install
-    -u		Update
+    -s[q] pkg   Search
+    -p    pkg   Print info
+    -i    pkg   Install
+    -u          Update
 
   Do-it-yourself Operations
-    -d    pkg	Download
-    -dd   pkg	Download with depends
-    -o		List updates
-    -do		Download updates
-     --404	List packages not in AUR
+    -d    pkg   Download
+    -dd   pkg   Download with depends
+    -o          List updates
+    -do         Download updates
+    --404       List packages not in AUR
 
 Try \`man spinach' for more information.
 EOF
 
-	return 0
+    return 0
 }
 
 unset Op Temp Custom
@@ -857,7 +857,7 @@ UseRepos=1
 UseColor=1
 UseBatch=1
 
-#defaults from config
+# defaults from config
 config=${XDG_CONFIG_HOME:-$HOME/.config}/spinach/config
 configEtc=/etc/spinach.conf
 
@@ -868,69 +868,69 @@ elif [[ -e $configEtc ]]; then
 fi
 
 while [[ -n $1 ]]; do
-	case "$1" in
-		#options
-		"--col")    UseColor=1;;
-		"--nocol")  UseColor=0;;
-		"--rep")    UseRepos=1;;
-		"--norep")  UseRepos=0;;
-		"--bat")    UseBatch=1;;
-		"--nobat")  UseBatch=0;;
-		"--aur3")   UseAUR3=1;;
-		"--tmp")    shift; blank "$1"; Temp="$1";;
-		"--max")    shift; blank "$1"; Threads="$1";;
-		"--edit")   shift; blank "$1"; EDITOR="$1";;
-		"--custom") shift; blank "$1"; Custom="$1";;
-		"--nocustom") unset Custom;;
-		"--needed") Needed=1;;
-		"--devel")  Devel=1;;
-		#common
-		"-s")  chkop; Op="s";;
-		"-sq") chkop; Op="sq";;
-		"-i")  chkop; Op="i";;
-		"-p")  chkop; Op="p";;
-		"-u")  chkop; Op="u";;
-		#diy
-		"-o")  chkop; Op="o";;
-		"-d")  chkop; Op="d";;
-		"-dd") chkop; Op="dd";;
-		"-do") chkop; Op="do";;
-		#other
-		"--404") chkop; Op="404";;
-		"--version") echo "$UA/$VE"; exit 0;;
-		"-h"|"--help") usage; exit 0;;
-		*) Pkgargs+=("$1");;
-	esac
-	shift
+    case "$1" in
+        # options
+        "--col")    UseColor=1;;
+        "--nocol")  UseColor=0;;
+        "--rep")    UseRepos=1;;
+        "--norep")  UseRepos=0;;
+        "--bat")    UseBatch=1;;
+        "--nobat")  UseBatch=0;;
+        "--aur3")   UseAUR3=1;;
+        "--tmp")    shift; blank "$1"; Temp="$1";;
+        "--max")    shift; blank "$1"; Threads="$1";;
+        "--edit")   shift; blank "$1"; EDITOR="$1";;
+        "--custom") shift; blank "$1"; Custom="$1";;
+        "--nocustom") unset Custom;;
+        "--needed") Needed=1;;
+        "--devel")  Devel=1;;
+        # common
+        "-s")  chkop; Op="s";;
+        "-sq") chkop; Op="sq";;
+        "-i")  chkop; Op="i";;
+        "-p")  chkop; Op="p";;
+        "-u")  chkop; Op="u";;
+        # diy
+        "-o")  chkop; Op="o";;
+        "-d")  chkop; Op="d";;
+        "-dd") chkop; Op="dd";;
+        "-do") chkop; Op="do";;
+        # other
+        "--404") chkop; Op="404";;
+        "--version") echo "$UA/$VE"; exit 0;;
+        "-h"|"--help") usage; exit 0;;
+        *) Pkgargs+=("$1");;
+    esac
+    shift
 done
 
 if [[ $Op ]]; then
-	#disable color if piped to another command
-	[[ ! -t 1 ]] && UseColor=0
-	set_color
-	
-	#make absolute
-	[[ -n $Custom && ${Custom:0:1} != / ]] && Custom="$(pwd)/$Custom"
+    # disable color if piped to another command
+    [[ ! -t 1 ]] && UseColor=0
+    set_color
 
-	case "$Op" in
-		u)      install_updates;		exit 0;;
-		o)      find_updates;			exit 0;;
-		do)     get_updates; 			exit 0;;
-		i)      install_pkg "${Pkgargs[@]}";	exit 0;;
-		404)    notfound;			exit 0;;
-	esac
+    # make absolute
+    [[ -n $Custom && ${Custom:0:1} != / ]] && Custom="$(pwd)/$Custom"
 
-	if (( ${#Pkgargs[@]} > 0 )); then
-		for pkg in "${Pkgargs[@]}"; do
-			case "$Op" in
-				s)  search v "$pkg";;
-				sq) search q "$pkg";;
-				p)  info     "$pkg";;
-				d)  get_pkg  "$pkg";;
-				dd) get_all  "$pkg";;
-			esac
-		done
-	else
-		blank
-	fi
+    case "$Op" in
+        u)      install_updates; exit 0;;
+        o)      find_updates; exit 0;;
+        do)     get_updates; exit 0;;
+        i)      install_pkg "${Pkgargs[@]}"; exit 0;;
+        404)    notfound; exit 0;;
+    esac
+
+    if (( ${#Pkgargs[@]} > 0 )); then
+        for pkg in "${Pkgargs[@]}"; do
+            case "$Op" in
+                s)  search v "$pkg";;
+                sq) search q "$pkg";;
+                p)  info     "$pkg";;
+                d)  get_pkg  "$pkg";;
+                dd) get_all  "$pkg";;
+            esac
+        done
+    else
+        blank
+    fi
 fi
