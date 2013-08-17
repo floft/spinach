@@ -1,55 +1,88 @@
-.TH spinach 1 "2013-05-04" "Spinach 0.5" "Spinach"
+.TH spinach 1 "2013-08-16" "Spinach 0.5" "Spinach"
 .SH NAME
-spinach \- A small AUR helper written in Bash.
+spinach \- Another AUR helper written in Bash.
 .SH SYNOPSIS
 .B spinach
 [options] [operation] [packages]
 .SH DESCRIPTION
 .B spinach
-is a very tiny AUR helper written in Bash that will help you download, install, and update packages from the AUR.
+is an AUR helper written in Bash that will help you download, install, and
+update packages from the AUR. It started out as a little project to write the
+smallest AUR helper in Bash... and then it grew huge. So, it's nowhere near
+ideal. But, it works for me, and I'm too lazy to go back and try other people's
+again so this is what I use.
 .SH OPTIONS
 .IP "--[no]col"
 Use color in certian places.
 .IP "--[no]bat"
-Run `sudo v' in the background to keep you from having to type in your password multiple times.
+Run `sudo -v' in the background to keep you from having to type in your
+password multiple times.
 .IP "--[no]rep"
-Also use pacman for the \fIinstall\fR operations. Installing will install via the official repositories if found and attempt to install from the AUR otherwise.
+Also use pacman for the \fIinstall\fR operations. Installing will install via
+the official repositories if found and attempt to install from the AUR
+otherwise.
 .IP "--edit"
-Specify the text editor to use in order to view the PKGBUILD and .install files when installing and upgrading packages. Defaults in this order if not specified: $EDITOR vim emacs vi nano most less more cat
+Specify the text editor to use in order to view the PKGBUILD and .install files
+when installing and upgrading packages. Defaults in this order if not
+specified: $EDITOR vim emacs vi nano most less more cat
 .IP "--tmp"
-If specified the spinach build and cache directories will be stored in spinach/ in this folder. If not specified, it will default to $TMPDIR if specified and as a last resort /tmp.
+If specified the spinach build and cache directories will be stored in spinach/
+in this folder. If not specified, it will default to $TMPDIR if specified and
+as a last resort /tmp.
 .IP "--max"
-If specified this will be the max number of curl instances started to find out-of-date packages. If not specified, it defaults to 10.
+If specified this will be the max number of curl instances started to find
+out-of-date packages. If not specified, it defaults to 10.
 .IP "--custom"
-The absolute path to a directory full of custom PKGBUILDs (in sub directories with the package name) to use instead of ones in the AUR. One use of this is to use `spinach --custom ./ -i something' to install your version of something with dependencies from the AUR.
+The absolute path to a directory full of custom PKGBUILDs (in sub directories
+with the package name) to use instead of ones in the AUR. One use of this is to
+use `spinach --custom ./ -i something' to install your version of something
+with dependencies from the AUR.
 .IP "--needed"
-When specified, AUR packages that are already installed on the computer will be skipped when trying to install them.
+When specified, AUR packages that are already installed on the computer will be
+skipped when trying to install them.
 .IP "--aur3"
-Download packages from the aur3.org mirror instead of aur.archlinux.org. Useful for when the AUR is down. The output of -s is the same as -sq, and the output of -p isn't prettified.
+Download packages from the aur3.org mirror instead of aur.archlinux.org. Useful
+for when the AUR is down. The output of -s is the same as -sq, and the output
+of -p isn't prettified.
 .IP "--devel"
-When used with "-u", also check for updates of -{bzr,cvs,darcs,git,hg,svn} packages. Note that for git and hg it has to clone the latest revision, so it will take a bit of time. However, the purpose is to have it mostly automated with minimal user input, so it will only prompt you to update when needed. This option has no effect on the "-o" operation.
+When used with "-u", also check for updates of -{bzr,cvs,darcs,git,hg,svn}
+packages. Note that for git and hg it has to clone the latest revision, so it
+will take a bit of time. However, the purpose is to have it mostly automated
+with minimal user input, so it will only prompt you to update when needed. This
+option has no effect on the "-o" operation.
 .SH COMMON OPERATIONS
 .IP "-s"
-Search for the specified package. A very similar option is '-sq' which prints only the package name from the search. This allows you to pipe the results to grep to do regex searching. See the EXAMPLES section. Results from '-s' will be sorted; results from '-sq' will not be. An asterisk after the name with '-s' indicates an out-of-date package.
+Search for the specified package. A very similar option is '-sq' which prints
+only the package name from the search. This allows you to pipe the results to
+grep to do regex searching. See the EXAMPLES section. Results from '-s' will be
+sorted; results from '-sq' will not be. An asterisk after the name with '-s'
+indicates an out-of-date package.
 .IP "-p"
 Print information for the specified package.
 .IP "-i"
 Install the specified package.
 .IP "-u"
-Update packages found on the AUR. This will not update packages in the official repos or packages that have been deleted from the AUR.
+Update packages found on the AUR. This will not update packages in the official
+repos or packages that have been deleted from the AUR.
 .SH DO-IT-YOURSELF OPERATIONS
 .IP "-d"
-Download the specified package from the AUR and extract the tarball in the current directory.
+Download the specified package from the AUR and extract the tarball in the
+current directory.
 .IP "-dd"
-Download the specified package from the AUR and any AUR dependencies to the current directory.
+Download the specified package from the AUR and any AUR dependencies to the
+current directory.
 .IP "-o"
 List packages that are older than the one in the AUR.
 .IP "-do"
-Download all the AUR packages that are older than the one in the AUR to the current directory.
+Download all the AUR packages that are older than the one in the AUR to the
+current directory.
 .IP "--404"
 List all the foreign packages installed that are not found in the AUR.
 .SH CONFIG
-The default system-wide configuration file is in /etc/spinach.conf. In a multi-user environment, you can copy spinach.conf to ~/.config/spinach/config which will override the system settings. Below are the available options for the config file.
+The default system-wide configuration file is in /etc/spinach.conf. In a
+multi-user environment, you can copy spinach.conf to ~/.config/spinach/config
+which will override the system settings. Below are the available options for
+the config file.
 .IP "UseRepos=1 UseBatch=1 UseColor=1"
 Same as specifying --rep, --bat, and --col.
 .IP "UseRepos=0 UseBatch=0 UseColor=0"
@@ -64,27 +97,70 @@ Same as specifying --edit editor, overrides $EDITOR
 Same as specifying --custom dir
 .SH NOTES
 .IP "Does Not Ask for Password"
-Newer versions of Spinach are intended to be able to install a bunch of packages easily. First it downloads all the files, then you are prompted to view them, then it installs depends, then it runs 'sudo -v' in the background every few seconds (if you have sudo and don't have --nobat or UseBatch=0), and finally compiles the applications. The key part of that sentence is: 'sudo -v' This will keep you from having to type in your password every time an application is compiled (since to compile applications, the depends normally have to be installed). Note: make sure the PKGBUILD and .install files don't run anything with sudo... although, there will be a notice if it's in there.
+Newer versions of Spinach are intended to be able to install a bunch of
+packages easily. First it downloads all the files, then you are prompted to
+view them, then it installs depends, then it runs 'sudo -v' in the background
+every few seconds (if you have sudo and don't have --nobat or UseBatch=0), and
+finally compiles the applications. The key part of that sentence is: `sudo -v'
+This will keep you from having to type in your password every time an
+application is compiled (since to compile applications, the depends normally
+have to be installed). Note: make sure the PKGBUILD and .install files don't
+run anything with sudo... although, there will be a notice if it's in there.
 .IP "View Files"
-When you install packages using Spinach, you will be forced to type "y", return, "n", "y", return "n", etc. if you don't want to view the PKGBUILD and .install files. This is supposed to annoy you. It is for you safety. Read the PKGBUILD and .install files! They could easily delete your files if you don't.
+When you install packages using Spinach, you will be forced to type "y",
+return, "n", "y", return "n", etc. if you don't want to view the PKGBUILD and
+ .install files. This is supposed to annoy you. It is for you safety. Read the
+PKGBUILD and .install files! They could easily delete your files if you don't.
 .IP "Running as Root"
-Never run Spinach as root. It will run makepkg as root which will run the PKGBUILD as root. You don't want that. There is nothing stopping you from running at root though. If you don't care about trashing your system, have fun running it as root. Note: you'll probably have to modify the lines with 'makepkg' in them...
+Never run Spinach as root. It will run makepkg as root which will run the
+PKGBUILD as root. You don't want that. There is nothing stopping you from
+running at root though. If you don't care about trashing your system, have fun
+running it as root. Note: you'll probably have to modify the lines with 'makepkg'
+in them...
 .IP "No Internet"
-If there is no Internet connection, Spinach probably won't print anything for most operations.
+If there is no Internet connection, Spinach probably won't print anything for
+most operations.
 .IP "Version Control"
-If you have some version-control package (-svn, -git, -hg, etc.) and you want to keep the trunk while updating, upgrade the package manually instead of using the automatic upgrade operation (-u). After installing an application (or upgrading) spinach will remove the files from the spinach/build/ directory.
+If you have some version-control package (-svn, -git, -hg, etc.) and you want
+to keep the trunk while updating, upgrade the package manually instead of using
+the automatic upgrade operation (-u). After installing an application (or
+upgrading) spinach will remove the files from the spinach/build/ directory.
 .IP "Spinach Cache"
-When you install or upgrade an application, the build directory in your temporary directory is deleted, but the generated package (if it was successfully created) will be copied to $Temp/spinach/cache/<bunch of text>.pkg.tar.xz. You can set the Spinach Temp directory either in the config file or with the --tmp option.
+When you install or upgrade an application, the build directory in your
+temporary directory is deleted, but the generated package (if it was
+successfully created) will be copied to $Temp/spinach/cache/<bunch of
+text>.pkg.tar.xz. You can set the Spinach Temp directory either in the config
+file or with the --tmp option.
 .IP "Config versus Options"
-Options specified (e.g. --col) will override whatever is in the config file (e.g. UseColor).
+Options specified (e.g. --col) will override whatever is in the config file
+(e.g. UseColor).
 .IP "/tmp with noexec"
-If you have your temporary directory TMPDIR mounted with noexec, you'll get permission denied errors when running makepkg. Thus, you'll need to specify a different tmp directory either with --tmp or in the config file.
+If you have your temporary directory TMPDIR mounted with noexec, you'll get
+permission denied errors when running makepkg. Thus, you'll need to specify a
+different tmp directory either with --tmp or in the config file.
+.SH Security
+.IP "Beware of sudo"
+As mentioned, spinach will reset sudo's timeout every once in a while when
+running in batch mode. You really need to watch out for anything running sudo
+in a PKGBUILD or .install file. Spinach will print a warning if "sudo" is in
+there, but it won't catch escaped, multi-line, or other obfuscations.
+.IP "PKGBUILD Sourcing"
+Code in the depends and makedepends arrays will be somewhat sourced (after a
+bunch of grep and sed calls to clean it up) before you even see it. If there is
+a way to execute code other than with tick marks or $() syntax, then this may
+be an arbitrary code execution vulnerability. However, I am unaware of such
+methods. The reason for this method is to make batch mode more useful,
+downloading all of them before letting you look at them all (which requires
+that it knows the depends). If you only use DIY modes, this isn't an issue.
+.IP ".install files"
+Spinach will warn if it sees that there is an install file and can't find it to
+let you check, but if somehow "install=" is obfuscated in the PKGBUILD, it
+won't display this warning.
+
 .SH EXAMPLES
 spinach --aur3 -u
 .TP
 spinach --nocol -p package1 package2
-.TP
-source /usr/bin/spinach --col; info spinach
 .TP
 spinach --col -dd $(spinach -sq openlp)
 Download all AUR packages returned from a search.
