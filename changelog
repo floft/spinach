@@ -1,3 +1,9 @@
+0.5.11:
+	* Fixed updating from Aur3.org; although, it looks like the mirror is no
+	  longer being updated, so added warning.
+	* Fixed formatting issue with printing information
+	* If there's an install file with a variable name, try opening *.install
+	  or if it can't find it, print a warning.
 0.5.10:
 	* allow system-wide config options in /etc/spinach.conf
 0.5.09:

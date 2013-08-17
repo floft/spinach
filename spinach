@@ -358,7 +358,7 @@ updates() {
 		info="http://aur3.org/rpc/" || \
 		info="$(get rp info "")"
 
-    (( UseAUR3 )) && msg w "doesn't quite work yet"
+    (( UseAUR3 )) && msg n "Using aur3.org mirror, which seems to be out of date"
 
 	trap "kill \"\${kill_list[@]}\" &>/dev/null; rm \"$tmp\"_* &>/dev/null; exit 1" 0 2 15
 
@@ -382,10 +382,11 @@ updates() {
 	for pkgs in "${threads[@]}"; do
 		if (( UseAUR3 )); then
 			{
-                # TODO: this doesn't work
-				curl -sfA "$UA" --compressed "$info{$pkgs}" 2>/dev/null | \
-				jshon -QC -e name -u -p -e pkgver -u -p -e pkgrel -u | \
-				paste -sd '\t-\n'
+                # This is pretty.
+                ( echo "[ "; curl -sfA "$UA" --compressed "$info{${pkgs// /,}}" 2>/dev/null | \
+                    sed 's/}{/},{/g'; echo " ]" ) | \
+                    jshon -QC -a -e name -u -p -e pkgver -u -p -e pkgrel -u | \
+                    paste -sd '\t-\n'
 			} > "$tmp"_"$count" &
 		else
 			{
