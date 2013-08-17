@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.5.10"
+VE="0.5.11"
 
 #get p url out.tar.gz
 #get r info name
@@ -104,8 +104,18 @@ preview() {
 	if ask "${question} ${name}?"; then
 		"$EDITOR" "PKGBUILD"
 
-		install_file="$(grep ^install= "PKGBUILD" | cut -d= -f2 | tr -d "'\"")"
-		[[ -e $install_file ]] && "$EDITOR" "$install_file"
+        if grep '^install=' "PKGBUILD" &>/dev/null; then
+            install_file="$(grep '^install=' "PKGBUILD" | cut -d= -f2 | tr -d "'\"")"
+            if [[ -e $install_file ]]; then
+                "$EDITOR" "$install_file"
+            elif ls *.install &>/dev/null; then
+                msg w "Couldn't determine install file, opening: $(ls *.install)"
+                "$EDITOR" *.install
+            else
+                msg w "Install file specified and couldn't find it. Look in:"
+                msg c "..." "$(pwd)"
+            fi
+        fi
 	fi
 
 	ask "Install $name?"
@@ -187,8 +197,8 @@ info() {
 			get r info "$query" | jshon -QC -e results | \
 				tail -n +2 | head -n -1 | sed -r '
 				s/^ "//g
-				s/": "/: /g
-				s/",?$//g
+				s/": "?/: /g
+				s/"?,?$//g
 				s/^URLPath: /URLPath: https:\/\/aur.archlinux.org/g' | color
 	fi
 	
@@ -348,6 +358,8 @@ updates() {
 		info="http://aur3.org/rpc/" || \
 		info="$(get rp info "")"
 
+    (( UseAUR3 )) && msg w "doesn't quite work yet"
+
 	trap "kill \"\${kill_list[@]}\" &>/dev/null; rm \"$tmp\"_* &>/dev/null; exit 1" 0 2 15
 
 	#ignore list, note the space at the end
@@ -370,6 +382,7 @@ updates() {
 	for pkgs in "${threads[@]}"; do
 		if (( UseAUR3 )); then
 			{
+                # TODO: this doesn't work
 				curl -sfA "$UA" --compressed "$info{$pkgs}" 2>/dev/null | \
 				jshon -QC -e name -u -p -e pkgver -u -p -e pkgrel -u | \
 				paste -sd '\t-\n'
@@ -804,7 +817,7 @@ Usage: spinach [options] [operation] [packages]
     --max 10	Set max threads
     --edit vim	Set \$EDITOR
     --aur3	Use aur3.org mirror
-    --custom d	Local AUR packages
+    --custom ./	Local AUR packages
     --needed	Only install new packages
     --devel	Update devel packages
 
