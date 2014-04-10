@@ -1,3 +1,6 @@
+0.5.12:
+	* Fixed some URL escaping issues
+	* Removed all Aur3.org support
 0.5.11:
 	* Fixed updating from Aur3.org; although, it looks like the mirror is no
 	  longer being updated, so added warning.

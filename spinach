@@ -1,6 +1,26 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.5.11"
+VE="0.5.12"
+
+# urlencode "string1" "string2" ...
+# for i in "${urlencode_results[@]}"; do ... ; done
+urlencode() {
+    local s c o
+    urlencode_results=()
+
+    for s; do
+        o=""
+        for (( i=0; i < ${#s}; ++i )); do
+            c="${s:$i:1}"
+            case "$c" in
+                [-._~:,A-Za-z0-9]) o+="$c" ;;
+                *) printf -v e "%%%02x" "'$c"; o+="$e" ;;
+            esac
+        done
+
+        urlencode_results+=("$o")
+    done
+}
 
 # get p url out.tar.gz
 # get r info name
@@ -25,10 +45,12 @@ get() {
 
     if (( multi )); then
         shift # get rid of "rm" option
-        local args="$(printf "&arg[]=%s" "$@")"
+        urlencode "$@"
+        local args="$(printf "&arg[]=%s" "${urlencode_results[@]}")"
         echo "$(printf "https://%s${multiinfo}%s" "$host" "$args")"
     else
-        url="$(printf "https://%s$str" "$host" "$rpc1" "$rpc2")"
+        urlencode "$rpc2"
+        url="$(printf "https://%s$str" "$host" "$rpc1" "${urlencode_results[0]}")"
         ((print)) && echo "$url" || curl -sfA "$UA" --compressed "$url" -o "$out"
     fi
 
@@ -145,22 +167,6 @@ search() {
     local verbosity="$1"
     local query="$2"
 
-    if (( UseAUR3 )); then
-        (( UseRepos )) && expac "%n" -Ss "$query"
-
-        trap 'exec 3<&-' 2 15
-
-        exec 3<>/dev/tcp/aur3.org/1819
-        echo "nd $query" >&3
-        cat <&3
-        exec 3<&-
-        echo
-
-        trap - 2 15
-
-        return 0
-    fi
-
     if [[ $verbosity == q ]]; then
         (( UseRepos )) && expac "%n" -Ss "$query"
         get r search "$query" | jshon -QC -e results -a -e Name -u
@@ -192,14 +198,12 @@ info() {
     fi
 
     if ! (( UseRepos )) || (( gotinfo )); then
-        (( UseAUR3 )) && \
-            curl -sfA "$UA" "http://aur3.org/rpc/$query" | jshon || \
-            get r info "$query" | jshon -QC -e results | \
-                tail -n +2 | head -n -1 | sed -r '
-                s/^ "//g
-                s/": "?/: /g
-                s/"?,?$//g
-                s/^URLPath: /URLPath: https:\/\/aur.archlinux.org/g' | color
+        get r info "$query" | jshon -QC -e results | \
+            tail -n +2 | head -n -1 | sed -r '
+            s/^ "//g
+            s/": "?/: /g
+            s/"?,?$//g
+            s/^URLPath: /URLPath: https:\/\/aur.archlinux.org/g' | color
     fi
 
     return 0
@@ -211,9 +215,7 @@ get_pkg() {
     local result=0
     local name="$1"
     local ignore=$2
-    (( UseAUR3 )) && \
-        url="$(curl -sfA "$UA" "http://aur3.org/rpc/$name" | jshon -e targz -u)" || \
-        url="$(get r info "$name" | jshon -QC -e results -e URLPath -u)"
+    url="$(get r info "$name" | jshon -QC -e results -e URLPath -u)"
 
     [[ -z $ignore ]] && ignore=0
 
@@ -231,9 +233,7 @@ get_pkg() {
         cp -r "$Custom/$name" ./
         result=$?
     else
-        (( UseAUR3 )) && \
-            curl -sfA "$UA" "$url" -o "$name.tar.gz" || \
-            get p "$url" "$name.tar.gz"
+        get p "$url" "$name.tar.gz"
         tar xzf "$name.tar.gz" &>/dev/null
         result=$?
         rm "$name.tar.gz" &>/dev/null
@@ -320,14 +320,8 @@ notfound() {
     trap "for t in \"\${thread_list[@]}\"; do kill \$t &>/dev/null; done; echo; exit 1" 0 2 15
 
     for pkg in $packages; do
-        if (( UseAUR3 )); then
-            curl -sfA "$UA" "http://aur3.org/rpc/$pkg" &>/dev/null || msg c "Not found" "$pkg" &
-            thread_list+=("$!")
-        else
-            (( $(get r info "$pkg" | jshon -e resultcount) == 0 )) && msg c "Not found" "$pkg" &
-            thread_list+=("$!")
-        fi
-
+        (( $(get r info "$pkg" | jshon -e resultcount) == 0 )) && msg c "Not found" "$pkg" &
+        thread_list+=("$!")
         thread_wait $Threads
     done
 
@@ -354,11 +348,7 @@ updates() {
     local threads=()
     local kill_list=()
     local tmp="$(mktemp -u)$$"
-    (( UseAUR3 )) && \
-        info="http://aur3.org/rpc/" || \
-        info="$(get rp info "")"
-
-    (( UseAUR3 )) && msg n "Using aur3.org mirror, which seems to be out of date"
+    info="$(get rp info "")"
 
     trap "kill \"\${kill_list[@]}\" &>/dev/null; rm \"$tmp\"_* &>/dev/null; exit 1" 0 2 15
 
@@ -380,21 +370,11 @@ updates() {
     # create threads
     count=0
     for pkgs in "${threads[@]}"; do
-        if (( UseAUR3 )); then
-            {
-                # This is pretty.
-                ( echo "[ "; curl -sfA "$UA" --compressed "$info{${pkgs// /,}}" 2>/dev/null | \
-                    sed 's/}{/},{/g'; echo " ]" ) | \
-                    jshon -QC -a -e name -u -p -e pkgver -u -p -e pkgrel -u | \
-                    paste -sd '\t-\n'
-            } > "$tmp"_"$count" &
-        else
-            {
-                curl -gsfA "$UA" --compressed "$(get rm $pkgs)" 2>/dev/null |  \
-                jshon -QC -e results -a -e Name -u -p -e Version -u | \
-                paste -sd '\t\n'
-            } > "$tmp"_"$count" &
-        fi
+        {
+            curl -gsfA "$UA" --compressed "$(get rm $pkgs)" 2>/dev/null |  \
+            jshon -QC -e results -a -e Name -u -p -e Version -u | \
+            paste -sd '\t\n'
+        } > "$tmp"_"$count" &
 
         kill_list+=("$!")
         (( ++count ))
@@ -817,7 +797,6 @@ Usage: spinach [options] [operation] [packages]
     --[no]bat   Use batch mode
     --max 10    Set max threads
     --edit vim  Set \$EDITOR
-    --aur3      Use aur3.org mirror
     --custom ./ Local AUR packages
     --needed    Only install new packages
     --devel     Update devel packages
@@ -852,7 +831,6 @@ Current_directory="$(pwd)"
 
 Devel=0
 Needed=0
-UseAUR3=0
 UseRepos=1
 UseColor=1
 UseBatch=1
@@ -876,7 +854,6 @@ while [[ -n $1 ]]; do
         "--norep")  UseRepos=0;;
         "--bat")    UseBatch=1;;
         "--nobat")  UseBatch=0;;
-        "--aur3")   UseAUR3=1;;
         "--tmp")    shift; blank "$1"; Temp="$1";;
         "--max")    shift; blank "$1"; Threads="$1";;
         "--edit")   shift; blank "$1"; EDITOR="$1";;
