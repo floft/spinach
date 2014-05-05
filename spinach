@@ -123,6 +123,8 @@ preview() {
     local name="$1"
     local question=${2:-View}
 
+    (( Hackme )) && return 0
+
     if ask "${question} ${name}?"; then
         "$EDITOR" "PKGBUILD"
 
@@ -800,6 +802,7 @@ Usage: spinach [options] [operation] [packages]
     --custom ./ Local AUR packages
     --needed    Only install new packages
     --devel     Update devel packages
+    --hackme    Don't ask, assume 'y'
 
   Common Operations
     -s[q] pkg   Search
@@ -830,6 +833,7 @@ KillSudov="killsudov$$.lock"
 Current_directory="$(pwd)"
 
 Devel=0
+Hackme=0
 Needed=0
 UseRepos=1
 UseColor=1
@@ -861,6 +865,7 @@ while [[ -n $1 ]]; do
         "--nocustom") unset Custom;;
         "--needed") Needed=1;;
         "--devel")  Devel=1;;
+        "--hackme") Hackme=1;;
         # common
         "-s")  chkop; Op="s";;
         "-sq") chkop; Op="sq";;
