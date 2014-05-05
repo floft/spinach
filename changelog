@@ -1,3 +1,7 @@
+possible:
+	* "d" mode, show diff from last time viewing file
+	* --hackme or --selfdestruct mode to install without viewing any files
+
 0.5.12:
 	* Fixed some URL escaping issues
 	* Removed all Aur3.org support
