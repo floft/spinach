@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.5.12"
+VE="0.5.13"
 
 # urlencode "string1" "string2" ...
 # for i in "${urlencode_results[@]}"; do ... ; done
@@ -123,7 +123,7 @@ preview() {
     local name="$1"
     local question=${2:-View}
 
-    (( Hackme )) && return 0
+    (( Noconfirm )) && return 0
 
     if ask "${question} ${name}?"; then
         "$EDITOR" "PKGBUILD"
@@ -593,7 +593,7 @@ install_updates() {
     done < <(updates)
 
     for pkg in "${packages[@]}"; do
-        ask "Update $pkg?" && upgrade_pkgs+=("$pkg")
+		{ (( Noconfirm )) || ask "Update $pkg?"; } && upgrade_pkgs+=("$pkg")
     done
 
     build "${upgrade_pkgs[@]}" || return 1
@@ -802,7 +802,7 @@ Usage: spinach [options] [operation] [packages]
     --custom ./ Local AUR packages
     --needed    Only install new packages
     --devel     Update devel packages
-    --hackme    Don't ask, assume 'y'
+    --noconfirm No questions, just do it
 
   Common Operations
     -s[q] pkg   Search
@@ -833,7 +833,7 @@ KillSudov="killsudov$$.lock"
 Current_directory="$(pwd)"
 
 Devel=0
-Hackme=0
+Noconfirm=0
 Needed=0
 UseRepos=1
 UseColor=1
@@ -865,7 +865,7 @@ while [[ -n $1 ]]; do
         "--nocustom") unset Custom;;
         "--needed") Needed=1;;
         "--devel")  Devel=1;;
-        "--hackme") Hackme=1;;
+        "--noconfirm") Noconfirm=1;;
         # common
         "-s")  chkop; Op="s";;
         "-sq") chkop; Op="sq";;

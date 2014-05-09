@@ -1,7 +1,9 @@
 possible:
 	* "d" mode, show diff from last time viewing file
-	* --hackme or --selfdestruct mode to install without viewing any files
+	* list of trusted packages, and packages from custom directory
 
+0.5.13:
+	* --noconfirm mode, install/update without asking or viewing files
 0.5.12:
 	* Fixed some URL escaping issues
 	* Removed all Aur3.org support
