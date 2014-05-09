@@ -1,4 +1,4 @@
-.TH spinach 1 "2014-04-10" "Spinach 0.5" "Spinach"
+.TH spinach 1 "2014-05-08" "Spinach 0.5" "Spinach"
 .SH NAME
 spinach \- Another AUR helper written in Bash.
 .SH SYNOPSIS
@@ -7,13 +7,11 @@ spinach \- Another AUR helper written in Bash.
 .SH DESCRIPTION
 .B spinach
 is an AUR helper written in Bash that will help you download, install, and
-update packages from the AUR. It started out as a little project to write the
-smallest AUR helper in Bash... and then it grew huge. So, it's nowhere near
-ideal. But, it works for me, and I'm too lazy to go back and try other people's
-again so this is what I use.
+update packages from the AUR. It started out small and grew. Now it's a bit
+larger than I would like.
 .SH OPTIONS
 .IP "--[no]col"
-Use color in certian places.
+Use color in certain places.
 .IP "--[no]bat"
 Run `sudo -v' in the background to keep you from having to type in your
 password multiple times.
@@ -46,6 +44,10 @@ packages. Note that for git and hg it has to clone the latest revision, so it
 will take a bit of time. However, the purpose is to have it mostly automated
 with minimal user input, so it will only prompt you to update when needed. This
 option has no effect on the "-o" operation.
+.IP "--nocustom"
+Don't ask to install or update, just do it. You won't have to view PKGBUILD or
+install files, but you will probably have to type in your password for sudo
+and correct PKGBUILD issues if it doesn't build.
 .SH COMMON OPERATIONS
 .IP "-s"
 Search for the specified package. A very similar option is '-sq' which prints
@@ -93,29 +95,17 @@ Same as specifying --edit editor, overrides $EDITOR
 Same as specifying --custom dir
 .SH NOTES
 .IP "Does Not Ask for Password"
-Newer versions of Spinach are intended to be able to install a bunch of
-packages easily. First it downloads all the files, then you are prompted to
-view them, then it installs depends, then it runs 'sudo -v' in the background
-every few seconds (if you have sudo and don't have --nobat or UseBatch=0), and
-finally compiles the applications. The key part of that sentence is: `sudo -v'
-This will keep you from having to type in your password every time an
-application is compiled (since to compile applications, the depends normally
-have to be installed). Note: make sure the PKGBUILD and .install files don't
-run anything with sudo... although, there will be a notice if it's in there.
-.IP "View Files"
-When you install packages using Spinach, you will be forced to type "y",
-return, "n", "y", return "n", etc. if you don't want to view the PKGBUILD and
- .install files. This is supposed to annoy you. It is for you safety. Read the
-PKGBUILD and .install files!
+This is to allow for easily installing many packages at once. It downloads all
+of the files, prompts you to view them, installs depends, runs 'sudo -v' in the
+background every few seconds (you can disable this), and finally compiles the
+packages. Running 'sudo -v' keeps you from having to type in your password. If
+you don't disable this, you want to make sure that nothing in a PKGBUILD or
+install file uses sudo.
 .IP "Running as Root"
 Never run Spinach as root. It will run makepkg as root which will run the
-PKGBUILD as root. You don't want that. There is nothing stopping you from
-running at root though. If you don't care about trashing your system, have fun
-running it as root. Note: you'll probably have to modify the lines with 'makepkg'
-in them...
+PKGBUILD as root.
 .IP "No Internet"
-If there is no Internet connection, Spinach probably won't print anything for
-most operations.
+Undefined behavior
 .IP "Version Control"
 If you have some version-control package (-svn, -git, -hg, etc.) and you want
 to keep the trunk while updating, upgrade the package manually instead of using
@@ -124,9 +114,9 @@ upgrading) spinach will remove the files from the spinach/build/ directory.
 .IP "Spinach Cache"
 When you install or upgrade an application, the build directory in your
 temporary directory is deleted, but the generated package (if it was
-successfully created) will be copied to $Temp/spinach/cache/<bunch of
-text>.pkg.tar.xz. You can set the Spinach Temp directory either in the config
-file or with the --tmp option.
+successfully created) will be copied to $Temp/spinach/cache/<...>.pkg.tar.xz.
+You can set the Spinach Temp directory either in the config file or with the
+--tmp option.
 .IP "Config versus Options"
 Options specified (e.g. --col) will override whatever is in the config file
 (e.g. UseColor).
@@ -152,7 +142,9 @@ that it knows the depends). If you only use DIY modes, this isn't an issue.
 Spinach will warn if it sees that there is an install file and can't find it to
 let you check, but if somehow "install=" is obfuscated in the PKGBUILD, it
 won't display this warning.
-
+.IP "--noconfirm"
+Obviously this is a security issue. Only use this if you trust the PKGBUILD and
+install files that will be executed.
 .SH EXAMPLES
 spinach --nocol -p package1 package2
 .TP
