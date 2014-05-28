@@ -598,8 +598,6 @@ install_updates() {
 
     build "${upgrade_pkgs[@]}" || return 1
 
-    check_running
-
     rm "$Tmp/update.lock"
     touch "$Tmp/$KillSudov"
     clean
@@ -665,10 +663,6 @@ mk_pkg() {
 
     while true; do
         if makepkg; then
-            [[ -d pkg/usr/bin ]] && for i in pkg/usr/bin/*; do
-                [[ -f $i ]] && UsrBin+=("${i//*\//}")
-            done
-
             rm -rf src/ pkg/
             break
         else
@@ -730,19 +724,6 @@ clean() {
 
     for file in "${Downloaded[@]}"; do
         [[ -e $Build/$file ]] && rm -rf "$Build/$file" &>/dev/null
-    done
-}
-
-# check_running
-check_running() {
-    local i
-
-    type ps &>/dev/null || return 0
-
-    for i in "${UsrBin[@]}"; do
-            if [[ $i != spinach ]] && ps -eo comm 2>/dev/null | grep "$i" &>/dev/null; then
-                msg n "/usr/bin/$i appears to be running and was updated."
-            fi
     done
 }
 
@@ -827,7 +808,6 @@ unset Op Temp Custom
 
 Threads=10
 Sleep=2
-UsrBin=()
 Pkgargs=()
 KillSudov="killsudov$$.lock"
 Current_directory="$(pwd)"
