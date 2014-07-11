@@ -473,7 +473,7 @@ updates_devel() {
             if [[ $_gitroot && $_gitname && $_gitname != *..* && $_gitname != /* ]]; then
                 mkdir -p "$pkg/src"
                 cd "$pkg/src"
-                git clone --depth 0 "$_gitroot" "$_gitname"
+                git clone --depth 1 "$_gitroot" "$_gitname"
                 date="$(cd "$_gitname"; git log -n 1 | grep "^Date: " | sed -r 's/Date:\s+//g')"
                 latest="$(date +%Y%m%d -d "$(for i in 2 3 5 4 6; do cut -d" " -f"$i" <<<"$date"; done)")"
                 cd "$Build"
