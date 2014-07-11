@@ -5,6 +5,7 @@ possible:
 0.5.13:
 	* --noconfirm mode, install/update without asking or viewing files
 	* removed notification when upgraded program is currently runnnig
+	* removed --devel option and code, didn't work that well
 0.5.12:
 	* Fixed some URL escaping issues
 	* Removed all Aur3.org support

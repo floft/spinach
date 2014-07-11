@@ -1,4 +1,4 @@
-.TH spinach 1 "2014-05-08" "Spinach 0.5" "Spinach"
+.TH spinach 1 "2014-07-11" "Spinach 0.5" "Spinach"
 .SH NAME
 spinach \- Another AUR helper written in Bash.
 .SH SYNOPSIS
@@ -38,12 +38,6 @@ with dependencies from the AUR.
 .IP "--needed"
 When specified, AUR packages that are already installed on the computer will be
 skipped when trying to install them.
-.IP "--devel"
-When used with "-u", also check for updates of -{bzr,cvs,darcs,git,hg,svn}
-packages. Note that for git and hg it has to clone the latest revision, so it
-will take a bit of time. However, the purpose is to have it mostly automated
-with minimal user input, so it will only prompt you to update when needed. This
-option has no effect on the "-o" operation.
 .IP "--nocustom"
 Don't ask to install or update, just do it. You won't have to view PKGBUILD or
 install files, but you will probably have to type in your password for sudo

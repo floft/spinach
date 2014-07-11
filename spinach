@@ -257,7 +257,7 @@ get_all() {
 
     [[ -z $explicit ]] && explicit=1
 
-    if (( explicit && ! Devel )); then # if devel, already downloaded packages
+    if (( explicit )); then
         [[ -e $name ]]  && { msg n "already downloaded $name/"; return 1; }
         get_pkg "$name" || { msg e "could not download $name";  return 1; }
     else
@@ -285,7 +285,7 @@ get_all() {
         local makedepends
 
         source <(tr '\n' ' ' < "$name/PKGBUILD" | grep -Eo ' (make)?depends=\([^)]*\)' | \
-            sed -r "s/(['\"])([^><='\"]*)[><=]+[^'\"]*\1/\1\2\1/g" | devel_clean)
+            sed -r "s/(['\"])([^><='\"]*)[><=]+[^'\"]*\1/\1\2\1/g" | str_clean)
 
         local deps="$(pacman -T ${depends[*]} ${makedepends[*]} | tr '\n' ' ')"
 
@@ -405,108 +405,11 @@ updates() {
     trap - 0 2 15
 }
 
-# eval $(devel_clean <<< input)
-devel_clean() {
+# eval $(str_clean <<< input)
+str_clean() {
     cat | sed -r 's/\$\([^)]+\)//g
     s/`[^`]+`//g
     s/;.*//g'
-}
-
-# devel_tool hg mercurial || return
-devel_tool() {
-    type "$1" &>/dev/null || run_pacman --needed --asdeps -S "$2"
-    type "$1" &>/dev/null
-
-    return $?
-}
-
-# (( Devel )) && updates_devel 3>file && while read -r line; do echo $line; done < file
-updates_devel() {
-    local pkg pkgbuild bzr_txt cvs_txt darcs_txt git_txt hg_txt svn_txt
-    local packages=()
-    Downloaded=()
-
-    editor || return 1
-    mk_tmp || return 1
-
-    cd "$Build"
-
-    trap "rm \"$Tmp/update.lock\"; rm \"$DevUpdates\"; clean; exit 1" 2 15
-
-    while read -r pkg; do
-        packages+=("$pkg")
-    done < <(expac "%n" | grep -E "\-(bzr|cvs|darcs|git|hg|svn)$")
-
-    for pkg in "${packages[@]}"; do
-        unset current latest
-
-        get_pkg "$pkg" || continue
-
-        pkgbuild="$Build/$pkg/PKGBUILD"
-
-        if [[ -e "$pkgbuild" ]]; then
-            Downloaded+=("$pkg")
-        else
-            continue
-            [[ -e "$Build/$pkg" ]] && rm -rf "$Build/$pkg"
-        fi
-
-        bzr_txt="$(grep   -E "^_bzr(trunk|mod)="   "$pkgbuild")"
-        cvs_txt="$(grep   -E "^_cvs(root|mod)="    "$pkgbuild")"
-        git_txt="$(grep   -E "^_git(root|name)="   "$pkgbuild")"
-        hg_txt="$(grep    -E "^_hg(root|repo)="    "$pkgbuild")"
-        svn_txt="$(grep   -E "^_svn(trunk|mod)="   "$pkgbuild")"
-        #darcs_txt="$(grep -E "^_darcs(trunk|mod)=" "$pkgbuild")"
-
-        if [[ $bzr_txt ]]; then
-            devel_tool bzr bzr && eval "$(devel_clean <<< "$bzr_txt")"
-
-            [[ $_bzrtrunk ]] && latest="$(bzr revno "$_bzrtrunk" 2>/dev/null)"
-        elif [[ $cvs_txt ]]; then
-            devel_tool cvs cvs  && eval "$(devel_clean <<< "$cvs_txt")"
-
-            [[ $_cvsroot && $_cvsmod ]] && latest="$(cvs -d "$_cvsroot" rlog "$_cvsmod" 2>/dev/null | \
-                grep -m 1 -E "^head:" | cut -d" " -f2)"
-        elif [[ $git_txt ]]; then
-            devel_tool git git && eval "$(devel_clean <<< "$git_txt")"
-
-            if [[ $_gitroot && $_gitname && $_gitname != *..* && $_gitname != /* ]]; then
-                mkdir -p "$pkg/src"
-                cd "$pkg/src"
-                git clone --depth 1 "$_gitroot" "$_gitname"
-                date="$(cd "$_gitname"; git log -n 1 | grep "^Date: " | sed -r 's/Date:\s+//g')"
-                latest="$(date +%Y%m%d -d "$(for i in 2 3 5 4 6; do cut -d" " -f"$i" <<<"$date"; done)")"
-                cd "$Build"
-            fi
-        elif [[ $hg_txt ]]; then
-            devel_tool hg mercurial && eval "$(devel_clean <<< "$hg_txt")"
-
-            if [[ $_hgroot && $_hgrepo && $_hgrepo != *..* && $_hgrepo != /* ]]; then
-                mkdir -p "$pkg/src"
-                cd "$pkg/src"
-                hg clone "$_hgroot/$_hgrepo" "$_hgrepo"
-                latest="$(cd "$_hgrepo"; hg tip --template "{rev}")"
-                cd "$Build"
-            fi
-        elif [[ $svn_txt ]]; then
-            devel_tool svn subversion && eval "$(devel_clean <<< "$svn_txt")"
-
-            [[ $_svntrunk ]] && latest="$(LC_ALL=C svn info "$_svntrunk" | \
-                sed -n 's/^Last Changed Rev: \([0-9]*\)$/\1/p')"
-        fi
-
-        current="$(expac "%v" "$pkg")"
-
-        if [[ $latest ]]; then
-            if (( latest > current )); then
-                echo -e "$pkg\t$current\t$latest" >&3
-            fi
-        else
-            echo -e "$pkg\t$current\tunknown" >&3
-        fi
-    done
-
-    trap - 2 15
 }
 
 # install_pkg "${packages[@]}"
@@ -539,7 +442,7 @@ install_pkg() {
 
     if (( ${#installRepo[@]} > 0 )); then
         (( Needed )) && run_pacman --needed -S "${installRepo[@]}" || \
-                run_pacman          -S "${installRepo[@]}"
+            run_pacman -S "${installRepo[@]}"
     fi
 
     build "${installAur[@]}" || return 1
@@ -568,22 +471,6 @@ install_updates() {
 
     [[ -e $Tmp/update.lock ]] && msg e "update lock exists in $Tmp/" && return 1
     touch "$Tmp/update.lock"
-
-    if (( Devel )); then
-        DevUpdates="$Tmp/$$.tmp"
-        touch "$DevUpdates"
-        updates_devel 3>"$DevUpdates"
-
-        while read -r update; do
-            pkg="$(cut -f1<<<"$update")"
-            packages+=("$pkg")
-            Downloaded+=("$pkg")
-            printf "${Color}%s${NoColor} (${UpdateOld}%s${NoColor} => ${UpdateNew}%s${NoColor})\n" \
-                "$pkg" "$(cut -f2<<<"$update")" "$(cut -f3<<<"$update")" >&2
-        done < "$DevUpdates"
-
-        rm "$DevUpdates"
-    fi
 
     trap "touch \"$Tmp/$KillSudov\"; clean; rm \"$Tmp/update.lock\" &>/dev/null; wait; rm \"$Tmp/$KillSudov\"; exit 1" 0
     trap "touch \"$Tmp/$KillSudov\"; clean; rm \"$Tmp/update.lock\" &>/dev/null; wait; rm \"$Tmp/$KillSudov\"; echo; exit 1" 2 15
@@ -782,7 +669,6 @@ Usage: spinach [options] [operation] [packages]
     --edit vim  Set \$EDITOR
     --custom ./ Local AUR packages
     --needed    Only install new packages
-    --devel     Update devel packages
     --noconfirm No questions, just do it
 
   Common Operations
@@ -812,7 +698,6 @@ Pkgargs=()
 KillSudov="killsudov$$.lock"
 Current_directory="$(pwd)"
 
-Devel=0
 Noconfirm=0
 Needed=0
 UseRepos=1
@@ -844,7 +729,6 @@ while [[ -n $1 ]]; do
         "--custom") shift; blank "$1"; Custom="$1";;
         "--nocustom") unset Custom;;
         "--needed") Needed=1;;
-        "--devel")  Devel=1;;
         "--noconfirm") Noconfirm=1;;
         # common
         "-s")  chkop; Op="s";;
