@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.5.13"
+VE="0.5.14"
 
 # urlencode "string1" "string2" ...
 # for i in "${urlencode_results[@]}"; do ... ; done
@@ -179,7 +179,7 @@ search() {
         get r search "$query" | \
             jshon -QC -e results -a -e Name -u -p -e OutOfDate -u -p -e Description -u  | \
             paste -s -d " :\n" | sed -r '
-            s/^([^:]*) 0:/\1: /g
+            s/^([^:]*) null:/\1: /g
             s/^([^:]*) [0-9]+:/\1 *: /g
             ' | sort | color
     fi
@@ -202,6 +202,7 @@ info() {
     if ! (( UseRepos )) || (( gotinfo )); then
         get r info "$query" | jshon -QC -e results | \
             tail -n +2 | head -n -1 | sed -r '
+            s#\\/#/#g
             s/^ "//g
             s/": "?/: /g
             s/"?,?$//g

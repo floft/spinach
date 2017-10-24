@@ -2,6 +2,10 @@ possible:
 	* "d" mode, show diff from last time viewing file
 	* list of trusted packages, and packages from custom directory
 
+0.5.14:
+	* finally got around to fixing the "null" in the search from
+	  non-out-of-date packages
+	* remove escaping of slashes in URLs when printing info
 0.5.13:
 	* --noconfirm mode, install/update without asking or viewing files
 	* removed notification when upgraded program is currently runnnig
