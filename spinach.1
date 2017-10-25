@@ -126,7 +126,7 @@ in a PKGBUILD or .install file. Spinach will print a warning if "sudo" is in
 there, but it won't catch escaped, multi-line, or other obfuscations.
 .IP "PKGBUILD Sourcing"
 By default the PKGBUILD is not sourced. However, if it can't find .SRCINFO, it
-will ask i fyou want to source it. If you say yes, code in the depends and
+will ask if you want to source it. If you say yes, code in the depends and
 makedepends arrays will be somewhat sourced (after a bunch of grep and sed
 calls to clean it up) before you even see it. If there is a way to execute code
 other than with tick marks or $() syntax, then this may be an arbitrary code
