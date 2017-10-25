@@ -1,6 +1,6 @@
 #!/bin/bash
 UA="Spinach"
-VE="0.5.14"
+VE="0.5.15"
 
 # urlencode "string1" "string2" ...
 # for i in "${urlencode_results[@]}"; do ... ; done
