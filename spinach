@@ -282,11 +282,27 @@ get_all() {
     while ! (( finished )) ; do
         finished=1
 
-        local depends
-        local makedepends
+        local depends=()
+        local makedepends=()
+        local checkdepends=()
 
-        source <(tr '\n' ' ' < "$name/PKGBUILD" | grep -Eo ' (make)?depends=\([^)]*\)' | \
-            sed -r "s/(['\"])([^><='\"]*)[><=]+[^'\"]*\1/\1\2\1/g" | str_clean)
+        if [[ -e "$name"/.SRCINFO ]]; then
+            while read -r key _ value _; do
+                [[ $key == depends ]] && depends+=("$value")
+                [[ $key == makedepends ]] && makedepends+=("$value")
+                [[ $key == checkdepends ]] && checkdepends+=("$value")
+                [[ $key == '' ]] && break
+            done < "$name"/.SRCINFO
+        else
+            # e.g. when using a local repository which you probably trust anyway
+            if ask "No .SRCINFO, source $name/PKGBUILD?"; then
+                source <(tr '\n' ' ' < "$name/PKGBUILD" | grep -Eo ' (make|check)?depends=\([^)]*\)' | \
+                    sed -r "s/(['\"])([^><='\"]*)[><=]+[^'\"]*\1/\1\2\1/g" | str_clean)
+            else
+                msg e "Must get depends from $name, inspect manually and rerun"
+                return 1
+            fi
+        fi
 
         local deps="$(pacman -T ${depends[*]} ${makedepends[*]} | tr '\n' ' ')"
 
@@ -300,8 +316,8 @@ get_all() {
             if ! get_all "$dep" 0; then
                 finished=0
 
-                if ask "Modify PKGBUILD for $pkg?"; then
-                    "$EDITOR" "$pkg/PKGBUILD"
+                if ask "Modify PKGBUILD for $name?"; then
+                    "$EDITOR" "$name/PKGBUILD"
                     break 1
                 else
                     msg e "Must download dependencies."
@@ -499,7 +515,7 @@ build() {
     local pkg i PKGEXT
 
     for pkg; do
-        get_all "$pkg"
+        get_all "$pkg" || return 1
     done
 
     (( $# == 0 )) && return 0 # no packages to install
