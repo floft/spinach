@@ -1,4 +1,4 @@
-.TH spinach 1 "2014-07-11" "Spinach 0.5" "Spinach"
+.TH spinach 1 "2017-10-25" "Spinach 0.5" "Spinach"
 .SH NAME
 spinach \- Another AUR helper written in Bash.
 .SH SYNOPSIS
@@ -125,13 +125,12 @@ running in batch mode. You really need to watch out for anything running sudo
 in a PKGBUILD or .install file. Spinach will print a warning if "sudo" is in
 there, but it won't catch escaped, multi-line, or other obfuscations.
 .IP "PKGBUILD Sourcing"
-Code in the depends and makedepends arrays will be somewhat sourced (after a
-bunch of grep and sed calls to clean it up) before you even see it. If there is
-a way to execute code other than with tick marks or $() syntax, then this may
-be an arbitrary code execution vulnerability. However, I am unaware of such
-methods. The reason for this method is to make batch mode more useful,
-downloading all of them before letting you look at them all (which requires
-that it knows the depends). If you only use DIY modes, this isn't an issue.
+By default the PKGBUILD is not sourced. However, if it can't find .SRCINFO, it
+will ask i fyou want to source it. If you say yes, code in the depends and
+makedepends arrays will be somewhat sourced (after a bunch of grep and sed
+calls to clean it up) before you even see it. If there is a way to execute code
+other than with tick marks or $() syntax, then this may be an arbitrary code
+execution vulnerability. (But, you can say "no" and look at it manually.)
 .IP ".install files"
 Spinach will warn if it sees that there is an install file and can't find it to
 let you check, but if somehow "install=" is obfuscated in the PKGBUILD, it
